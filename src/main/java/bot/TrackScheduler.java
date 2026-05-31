@@ -12,15 +12,13 @@ import net.dv8tion.jda.api.entities.channel.middleman.AudioChannel;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 
 public class TrackScheduler extends AudioEventAdapter {
 
     public enum RepeatMode { OFF, TRACK, QUEUE }
 
     private final AudioPlayer player;
-    private final BlockingQueue<AudioTrack> queue = new LinkedBlockingQueue<>();
+    private final List<AudioTrack> queue = Collections.synchronizedList(new ArrayList<>());
     private RepeatMode repeatMode = RepeatMode.OFF;
     private JDA jda;
     private long guildId;
@@ -45,7 +43,7 @@ public class TrackScheduler extends AudioEventAdapter {
 
     public void queue(AudioTrack track) {
         if (!player.startTrack(track, true)) {
-            queue.offer(track);
+            queue.add(track);
         }
     }
 
@@ -53,8 +51,17 @@ public class TrackScheduler extends AudioEventAdapter {
         player.startTrack(track, false);
     }
 
+    public AudioTrack peek() {
+        synchronized (queue) {
+            return queue.isEmpty() ? null : queue.get(0);
+        }
+    }
+
     public void skip() {
-        AudioTrack next = queue.poll();
+        AudioTrack next;
+        synchronized (queue) {
+            next = queue.isEmpty() ? null : queue.remove(0);
+        }
         if (next != null) {
             player.startTrack(next, false);
         } else {
@@ -71,7 +78,7 @@ public class TrackScheduler extends AudioEventAdapter {
         player.stopTrack();
     }
 
-    public BlockingQueue<AudioTrack> getQueue() {
+    public List<AudioTrack> getQueue() {
         return queue;
     }
 
@@ -84,14 +91,9 @@ public class TrackScheduler extends AudioEventAdapter {
     }
 
     public AudioTrack removeFromQueue(int index) {
-        List<AudioTrack> tracks = new ArrayList<>();
-        queue.drainTo(tracks);
-        AudioTrack removed = null;
-        if (index >= 0 && index < tracks.size()) {
-            removed = tracks.remove(index);
+        synchronized (queue) {
+            return index >= 0 && index < queue.size() ? queue.remove(index) : null;
         }
-        queue.addAll(tracks);
-        return removed;
     }
 
     public void clearQueue() {
@@ -99,47 +101,41 @@ public class TrackScheduler extends AudioEventAdapter {
     }
 
     public boolean moveInQueue(int from, int to) {
-        List<AudioTrack> tracks = new ArrayList<>();
-        queue.drainTo(tracks);
-        if (from < 0 || from >= tracks.size() || to < 0 || to >= tracks.size()) {
-            queue.addAll(tracks);
-            return false;
+        synchronized (queue) {
+            if (from < 0 || from >= queue.size() || to < 0 || to >= queue.size()) return false;
+            AudioTrack track = queue.remove(from);
+            queue.add(to, track);
+            return true;
         }
-        AudioTrack track = tracks.remove(from);
-        tracks.add(to, track);
-        queue.addAll(tracks);
-        return true;
     }
 
     public AudioTrack skipTo(int index) {
-        List<AudioTrack> tracks = new ArrayList<>();
-        queue.drainTo(tracks);
-        if (index < 0 || index >= tracks.size()) {
-            queue.addAll(tracks);
-            return null;
+        synchronized (queue) {
+            if (index < 0 || index >= queue.size()) return null;
+            AudioTrack target = queue.get(index);
+            List<AudioTrack> remaining = new ArrayList<>(queue.subList(index + 1, queue.size()));
+            queue.clear();
+            queue.addAll(remaining);
+            player.startTrack(target, false);
+            return target;
         }
-        AudioTrack target = tracks.get(index);
-        for (int i = index + 1; i < tracks.size(); i++) {
-            queue.offer(tracks.get(i));
-        }
-        player.startTrack(target, false);
-        return target;
     }
 
     public boolean isDuplicate(String uri) {
         AudioTrack current = player.getPlayingTrack();
         if (current != null && current.getInfo().uri.equals(uri)) return true;
-        for (AudioTrack track : queue) {
-            if (track.getInfo().uri.equals(uri)) return true;
+        synchronized (queue) {
+            for (AudioTrack track : queue) {
+                if (track.getInfo().uri.equals(uri)) return true;
+            }
         }
         return false;
     }
 
     public void shuffle() {
-        List<AudioTrack> tracks = new ArrayList<>();
-        queue.drainTo(tracks);
-        Collections.shuffle(tracks);
-        queue.addAll(tracks);
+        synchronized (queue) {
+            Collections.shuffle(queue);
+        }
     }
 
     @Override
@@ -149,10 +145,13 @@ public class TrackScheduler extends AudioEventAdapter {
             if (repeatMode == RepeatMode.TRACK) {
                 player.startTrack(track.makeClone(), false);
             } else if (repeatMode == RepeatMode.QUEUE) {
-                queue.offer(track.makeClone());
+                queue.add(track.makeClone());
                 skip();
             } else {
-                AudioTrack next = queue.poll();
+                AudioTrack next;
+                synchronized (queue) {
+                    next = queue.isEmpty() ? null : queue.remove(0);
+                }
                 if (next != null) {
                     player.startTrack(next, false);
                 } else if (onIdle != null) {

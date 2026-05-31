@@ -31,7 +31,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -41,9 +40,10 @@ public class CommandHandler extends ListenerAdapter {
 
     private final AudioPlayerManager playerManager = new DefaultAudioPlayerManager();
     private final Map<Long, GuildMusicManager> musicManagers = new HashMap<>();
-    private final SpotifyResolver spotify = new SpotifyResolver(
-            MusicBot.CONFIG.getProperty("spotify.client.id", ""),
-            MusicBot.CONFIG.getProperty("spotify.client.secret", ""));
+    private final String ownerId;
+    private final String ownerDisplay;
+    private final String supportContact;
+    private final SpotifyResolver spotify;
 
     private static final Map<String, String[]> RADIO_STATIONS = new java.util.LinkedHashMap<>() {{
         put("1live",      new String[]{"\uD83D\uDCFB 1LIVE", "https://wdr-1live-live.icecastssl.wdr.de/wdr/1live/live/mp3/128/stream.mp3"});
@@ -93,11 +93,18 @@ public class CommandHandler extends ListenerAdapter {
     private final String[] NONSTOP_MODIFIERS;
     private final java.util.Random nonstopRandom = new java.util.Random();
     private final Map<Long, Long> lastChannelIds = new HashMap<>();
-    private final ScheduledExecutorService npScheduler = Executors.newSingleThreadScheduledExecutor();
+    private final ScheduledExecutorService npScheduler = Executors.newScheduledThreadPool(4);
     private final Map<Long, ScheduledFuture<?>> npUpdateTasks = new HashMap<>();
     private final Map<Long, net.dv8tion.jda.api.interactions.InteractionHook> npHooks = new HashMap<>();
 
     public CommandHandler() {
+        var cfg = MusicBot.CONFIG;
+        spotify = new SpotifyResolver(
+                cfg.getProperty("spotify.client.id", ""),
+                cfg.getProperty("spotify.client.secret", ""));
+        ownerId = cfg.getProperty("bot.owner.id", "").trim();
+        ownerDisplay = cfg.getProperty("bot.owner", "Unbekannt");
+        supportContact = cfg.getProperty("bot.support", "Keine Angabe");
         playerManager.getConfiguration().setOpusEncodingQuality(5);
         playerManager.getConfiguration().setResamplingQuality(com.sedmelluq.discord.lavaplayer.player.AudioConfiguration.ResamplingQuality.MEDIUM);
         playerManager.setFrameBufferDuration(1000);
@@ -114,9 +121,12 @@ public class CommandHandler extends ListenerAdapter {
         String value = MusicBot.CONFIG.getProperty(key, "").trim();
         if (value.isBlank()) return fallback;
         String[] parts = value.split("\\s*,\\s*");
-        java.util.List<String> cleaned = new ArrayList<>();
-        for (String p : parts) if (!p.isBlank()) cleaned.add(p.trim());
-        return cleaned.isEmpty() ? fallback : cleaned.toArray(new String[0]);
+        long nonEmpty = java.util.Arrays.stream(parts).filter(p -> !p.isBlank()).count();
+        if (nonEmpty == 0) return fallback;
+        String[] result = new String[(int) nonEmpty];
+        int idx = 0;
+        for (String p : parts) if (!p.isBlank()) result[idx++] = p.trim();
+        return result;
     }
 
     private GuildMusicManager getGuildMusic(Guild guild) {
@@ -251,7 +261,6 @@ public class CommandHandler extends ListenerAdapter {
 
     private void handleDcLeave(SlashCommandInteractionEvent event) {
         long gid = event.getGuild().getIdLong();
-        String ownerId = MusicBot.CONFIG.getProperty("bot.owner.id", "").trim();
         if (ownerId.isEmpty() || !event.getUser().getId().equals(ownerId)) {
             event.reply(Lang.t(gid, "dcleave.not.owner")).setEphemeral(true).queue();
             return;
@@ -512,7 +521,6 @@ public class CommandHandler extends ListenerAdapter {
                 }
             }
         } else if (event.getName().equals("dcleave") && event.getFocusedOption().getName().equals("server")) {
-            String ownerId = MusicBot.CONFIG.getProperty("bot.owner.id", "").trim();
             String userId = event.getUser().getId();
             System.out.println("[dcleave] Autocomplete von User " + userId + " (Owner=" + ownerId + ")");
             if (ownerId.isEmpty() || !userId.equals(ownerId)) {
@@ -606,7 +614,7 @@ public class CommandHandler extends ListenerAdapter {
     private void handleSkip(SlashCommandInteractionEvent event) {
         long gid = event.getGuild().getIdLong();
         GuildMusicManager manager = getGuildMusic(event.getGuild());
-        AudioTrack next = manager.scheduler.getQueue().peek();
+        AudioTrack next = manager.scheduler.peek();
         boolean nonstop = nonstopGuilds.contains(gid);
         manager.scheduler.skip();
         EmbedBuilder embed = new EmbedBuilder().setColor(0x5865F2);
@@ -808,13 +816,7 @@ public class CommandHandler extends ListenerAdapter {
     private String buildProgressBar(long position, long duration) {
         int total = 20;
         int filled = duration > 0 ? (int) (position * total / duration) : 0;
-        StringBuilder bar = new StringBuilder();
-        for (int i = 0; i < total; i++) {
-            if (i == filled) bar.append("\uD83D\uDD18");
-            else if (i < filled) bar.append("▬");
-            else bar.append("▬");
-        }
-        return bar.toString();
+        return "▬".repeat(filled) + "\uD83D\uDD18" + "▬".repeat(Math.max(0, total - filled - 1));
     }
 
     private String extractVideoId(String url) {
@@ -1173,7 +1175,7 @@ public class CommandHandler extends ListenerAdapter {
         String query = "ytsearch:" + genre + " " + modifier;
         System.out.println("[Nonstop] Suche: " + query);
 
-        playerManager.loadItem(query, new AudioLoadResultHandler() {
+        playerManager.loadItemOrdered(musicManager, query, new AudioLoadResultHandler() {
             @Override
             public void trackLoaded(AudioTrack track) {
                 musicManager.scheduler.queue(track);
@@ -1265,8 +1267,9 @@ public class CommandHandler extends ListenerAdapter {
         long gid = event.getGuild().getIdLong();
         GuildMusicManager manager = getGuildMusic(event.getGuild());
         int pos = event.getOption("position").getAsInt();
-        if (pos < 1 || pos > manager.scheduler.getQueue().size()) {
-            event.reply(Lang.t(gid, "pos.invalid", manager.scheduler.getQueue().size())).setEphemeral(true).queue();
+        int size = manager.scheduler.getQueue().size();
+        if (pos < 1 || pos > size) {
+            event.reply(Lang.t(gid, "pos.invalid", size)).setEphemeral(true).queue();
             return;
         }
         AudioTrack removed = manager.scheduler.removeFromQueue(pos - 1);
@@ -1319,8 +1322,6 @@ public class CommandHandler extends ListenerAdapter {
 
     private void handleInfo(SlashCommandInteractionEvent event) {
         long gid = event.getGuild().getIdLong();
-        String owner = MusicBot.CONFIG.getProperty("bot.owner", "Unbekannt");
-        String support = MusicBot.CONFIG.getProperty("bot.support", "Keine Angabe");
 
         Duration uptime = Duration.between(MusicBot.START_TIME, Instant.now());
         String uptimeStr = formatUptime(uptime);
@@ -1334,21 +1335,25 @@ public class CommandHandler extends ListenerAdapter {
                 })
                 .count();
 
-        int totalMembers = event.getJDA().getGuilds().stream()
+        var guilds = event.getJDA().getGuilds();
+        int totalMembers = guilds.stream()
                 .mapToInt(Guild::getMemberCount)
                 .sum();
 
+        String selfName = event.getJDA().getSelfUser().getName();
+        String selfAvatar = event.getJDA().getSelfUser().getEffectiveAvatarUrl();
+
         EmbedBuilder embed = new EmbedBuilder()
-                .setTitle("\uD83E\uDD16 " + event.getJDA().getSelfUser().getName())
-                .setThumbnail(event.getJDA().getSelfUser().getEffectiveAvatarUrl())
+                .setTitle("\uD83E\uDD16 " + selfName)
+                .setThumbnail(selfAvatar)
                 .setColor(0x5865F2)
-                .addField(Lang.t(gid, "info.owner"), owner, true)
-                .addField(Lang.t(gid, "info.servers"), String.valueOf(event.getJDA().getGuilds().size()), true)
+                .addField(Lang.t(gid, "info.owner"), ownerDisplay, true)
+                .addField(Lang.t(gid, "info.servers"), String.valueOf(guilds.size()), true)
                 .addField(Lang.t(gid, "info.members"), String.valueOf(totalMembers), true)
                 .addField(Lang.t(gid, "info.uptime"), uptimeStr, true)
-                .addField(Lang.t(gid, "info.active.players"), activePlayers + " / " + event.getJDA().getGuilds().size(), true)
+                .addField(Lang.t(gid, "info.active.players"), activePlayers + " / " + guilds.size(), true)
                 .addField("\u200B", "\u200B", true)
-                .addField(Lang.t(gid, "info.support"), support, false)
+                .addField(Lang.t(gid, "info.support"), supportContact, false)
                 .addField(Lang.t(gid, "info.discord"), Lang.t(gid, "info.discord.value"), false)
                 .setFooter(Lang.t(gid, "info.footer"));
         event.replyEmbeds(embed.build()).queue();

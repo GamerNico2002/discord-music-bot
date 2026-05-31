@@ -136,8 +136,9 @@ public class MusicBot extends ListenerAdapter {
         final int[] index = {0};
         scheduler.scheduleAtFixedRate(() -> {
             try {
-                int servers = jda.getGuilds().size();
-                int members = jda.getGuilds().stream()
+                var guilds = jda.getGuilds();
+                int servers = guilds.size();
+                int members = guilds.stream()
                         .mapToInt(Guild::getMemberCount)
                         .sum();
                 String msg = statusMessages[index[0] % statusMessages.length]
