@@ -1,0 +1,28 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+.project
+.classpath
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Bot - sensible Daten / Laufzeit-Dateien
+config.properties
+*.log
+bot_output.log
+bot_error.log
+
+# Lokale Build-Helper / Artefakte
+discord-music-bot-*-all.jar
+*.class
