@@ -14,6 +14,13 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"/></a>
   <a href="../../releases/latest"><img src="https://img.shields.io/github/v/release/GamerNico2002/discord-music-bot?color=5865F2" alt="Latest Release"/></a>
   <img src="https://img.shields.io/badge/Java-25-orange?logo=openjdk" alt="Java 25"/>
+  <a href="https://discord.gg/9vMARH8hnV"><img src="https://img.shields.io/discord/0?label=Discord&logo=discord&logoColor=white&color=5865F2" alt="Discord"/></a>
+</p>
+
+<p align="center">
+  <a href="https://discord.gg/9vMARH8hnV">
+    <img src="https://invidget.switchblade.xyz/9vMARH8hnV" alt="Discord Support Server"/>
+  </a>
 </p>
 
 ---
@@ -209,9 +216,22 @@ journalctl -u musicbot -f
 
 ---
 
+## 💬 Support & Community
+
+Brauchst du Hilfe, willst Bugs melden oder einfach quatschen?  
+Komm in unseren **Discord-Support-Server**:
+
+<p align="center">
+  <a href="https://discord.gg/9vMARH8hnV">
+    <img src="https://img.shields.io/badge/Discord-Support%20Server%20beitreten-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord beitreten"/>
+  </a>
+</p>
+
+👉 **Invite:** https://discord.gg/9vMARH8hnV
+
 ## 🤝 Mitwirken
 
-Pull Requests sind willkommen! Für größere Änderungen bitte erst ein Issue eröffnen.
+Pull Requests sind willkommen! Für größere Änderungen bitte erst ein Issue eröffnen – oder sprich uns direkt im [Discord](https://discord.gg/9vMARH8hnV) an.
 
 ## 📄 Lizenz
 
