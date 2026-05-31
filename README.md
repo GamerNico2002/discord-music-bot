@@ -111,7 +111,7 @@ Beispiel: `/language code:en` setzt die Bot-Antworten auf Englisch.
 2. `config.properties.example` aus dem Repo herunterladen → in `config.properties` umbenennen → Token eintragen
 3. Beide Dateien in den **selben Ordner** legen und Doppelklick auf `start.bat` – oder:
    ```powershell
-   java --enable-native-access=ALL-UNNAMED -Xmx2G -jar discord-music-bot-2.0-all.jar
+   java --enable-native-access=ALL-UNNAMED -Xmx2G -jar discord-music-bot-2.1-all.jar
    ```
 
 #### 2b. Selbst bauen
@@ -123,7 +123,7 @@ notepad config.properties   # bot.token eintragen
 
 .\gradlew.bat shadowJar
 ```
-Die fertige JAR liegt anschließend in `build\libs\discord-music-bot-2.0-all.jar`. Starten:
+Die fertige JAR liegt anschließend in `build\libs\discord-music-bot-2.1-all.jar`. Starten:
 ```powershell
 .\start.bat
 ```
@@ -136,10 +136,10 @@ Die fertige JAR liegt anschließend in `build\libs\discord-music-bot-2.0-all.jar
 
 #### Option A – Fertige JAR vom Release
 ```bash
-wget https://github.com/GamerNico2002/discord-music-bot/releases/latest/download/discord-music-bot-2.0-all.jar
+wget https://github.com/GamerNico2002/discord-music-bot/releases/latest/download/discord-music-bot-2.1-all.jar
 wget https://raw.githubusercontent.com/GamerNico2002/discord-music-bot/main/config.properties.example -O config.properties
 nano config.properties       # bot.token eintragen
-java --enable-native-access=ALL-UNNAMED -Xmx2G -jar discord-music-bot-2.0-all.jar
+java --enable-native-access=ALL-UNNAMED -Xmx2G -jar discord-music-bot-2.1-all.jar
 ```
 
 #### Option B – Selbst bauen
@@ -218,7 +218,7 @@ After=network.target
 Type=simple
 User=musicbot
 WorkingDirectory=/opt/discord-music-bot
-ExecStart=/opt/jdk-25/bin/java --enable-native-access=ALL-UNNAMED -Xmx2G -jar discord-music-bot-2.0-all.jar
+ExecStart=/opt/jdk-25/bin/java --enable-native-access=ALL-UNNAMED -Xmx2G -jar discord-music-bot-2.1-all.jar
 Restart=always
 RestartSec=10
 
