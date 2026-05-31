@@ -69,7 +69,14 @@ public class MusicBot extends ListenerAdapter {
             Commands.slash("uptime", "Zeigt wie lange der Bot schon online ist"),
             Commands.slash("ping", "Zeigt die Latenz des Bots"),
             Commands.slash("dcleave", "Bot verlaesst einen ausgewaehlten Discord-Server (nur Bot-Owner)")
-                    .addOption(OptionType.STRING, "server", "Discord-Server auswaehlen", true, true)
+                    .addOption(OptionType.STRING, "server", "Discord-Server auswaehlen", true, true),
+            Commands.slash("language", "Sprache des Bots aendern / Change bot language")
+                    .addOptions(new net.dv8tion.jda.api.interactions.commands.build.OptionData(OptionType.STRING, "code", "Sprache / Language", false)
+                            .addChoice("\uD83C\uDDE9\uD83C\uDDEA Deutsch", "de")
+                            .addChoice("\uD83C\uDDEC\uD83C\uDDE7 English", "en")
+                            .addChoice("\uD83C\uDDEB\uD83C\uDDF7 Fran\u00e7ais", "fr")
+                            .addChoice("\uD83C\uDDEA\uD83C\uDDF8 Espa\u00f1ol", "es")
+                            .addChoice("\uD83C\uDDEE\uD83C\uDDF9 Italiano", "it"))
     );
 
     @Override

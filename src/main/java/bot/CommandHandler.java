@@ -221,23 +221,49 @@ public class CommandHandler extends ListenerAdapter {
             case "uptime" -> handleUptime(event);
             case "ping" -> handlePing(event);
             case "dcleave" -> handleDcLeave(event);
+            case "language" -> handleLanguage(event);
         }
     }
 
+    private void handleLanguage(SlashCommandInteractionEvent event) {
+        long guildId = event.getGuild().getIdLong();
+        var codeOpt = event.getOption("code");
+        if (codeOpt == null) {
+            String current = Lang.SUPPORTED.get(Lang.getLang(guildId));
+            event.replyEmbeds(new EmbedBuilder()
+                    .setTitle(Lang.t(guildId, "lang.title"))
+                    .setDescription(Lang.t(guildId, "lang.current", current))
+                    .setColor(0x5865F2).build()).queue();
+            return;
+        }
+        String code = codeOpt.getAsString();
+        if (!Lang.SUPPORTED.containsKey(code)) {
+            event.reply("Unsupported language code: " + code).setEphemeral(true).queue();
+            return;
+        }
+        Lang.setLang(guildId, code);
+        String label = Lang.SUPPORTED.get(code);
+        event.replyEmbeds(new EmbedBuilder()
+                .setTitle(Lang.t(guildId, "lang.title"))
+                .setDescription(Lang.t(guildId, "lang.changed", label))
+                .setColor(0x57F287).build()).queue();
+    }
+
     private void handleDcLeave(SlashCommandInteractionEvent event) {
+        long gid = event.getGuild().getIdLong();
         String ownerId = MusicBot.CONFIG.getProperty("bot.owner.id", "").trim();
         if (ownerId.isEmpty() || !event.getUser().getId().equals(ownerId)) {
-            event.reply("\u26D4 Nur der Bot-Owner darf diesen Befehl benutzen.").setEphemeral(true).queue();
+            event.reply(Lang.t(gid, "dcleave.not.owner")).setEphemeral(true).queue();
             return;
         }
         String guildId = event.getOption("server").getAsString();
         Guild target = event.getJDA().getGuildById(guildId);
         if (target == null) {
-            event.reply("\u274C Server nicht gefunden (ID: " + guildId + ")").setEphemeral(true).queue();
+            event.reply(Lang.t(gid, "dcleave.not.found", guildId)).setEphemeral(true).queue();
             return;
         }
         String name = target.getName();
-        event.reply("\uD83D\uDC4B Verlasse Server **" + name + "** (" + guildId + ")...").setEphemeral(true).queue();
+        event.reply(Lang.t(gid, "dcleave.leaving", name, guildId)).setEphemeral(true).queue();
         target.leave().queue(
                 s -> System.out.println("[dcleave] Server verlassen: " + name + " (" + guildId + ")"),
                 err -> System.err.println("[dcleave] Fehler beim Verlassen von " + name + ": " + err.getMessage())
@@ -245,9 +271,10 @@ public class CommandHandler extends ListenerAdapter {
     }
 
     private void handlePlay(SlashCommandInteractionEvent event) {
+        long gid = event.getGuild().getIdLong();
         GuildVoiceState voiceState = event.getMember().getVoiceState();
         if (voiceState == null || !voiceState.inAudioChannel()) {
-            event.reply("Du musst in einem Voice-Channel sein!").setEphemeral(true).queue();
+            event.reply(Lang.t(gid, "voice.required")).setEphemeral(true).queue();
             return;
         }
 
@@ -282,6 +309,7 @@ public class CommandHandler extends ListenerAdapter {
     }
 
     private void loadAndPlay(SlashCommandInteractionEvent event, Guild guild, AudioChannelUnion channel, GuildMusicManager musicManager, String query, boolean forcePlay) {
+        long gid = guild.getIdLong();
         playerManager.loadItemOrdered(musicManager, query, new AudioLoadResultHandler() {
             @Override
             public void trackLoaded(AudioTrack track) {
@@ -290,13 +318,13 @@ public class CommandHandler extends ListenerAdapter {
                 String msg;
                 int color;
                 if (forcePlay) {
-                    msg = "\uD83D\uDCFB **" + track.getInfo().title + "** gestartet";
+                    msg = Lang.t(gid, "radio.started", track.getInfo().title);
                     color = 0xEB459E;
                 } else if (duplicate) {
-                    msg = "⚠️ **" + track.getInfo().title + "** ist bereits in der Queue! Trotzdem hinzugefuegt.";
+                    msg = Lang.t(gid, "track.duplicate", track.getInfo().title);
                     color = 0xFEE75C;
                 } else {
-                    msg = "**" + track.getInfo().title + "** zur Queue hinzugefuegt";
+                    msg = Lang.t(gid, "track.added", track.getInfo().title);
                     color = 0x5865F2;
                 }
                 event.getHook().sendMessageEmbeds(new EmbedBuilder().setDescription(msg).setColor(color).build()).queue();
@@ -307,7 +335,7 @@ public class CommandHandler extends ListenerAdapter {
                 if (playlist.isSearchResult()) {
                     AudioTrack track = playlist.getTracks().get(0);
                     connectAndPlay(guild, channel, musicManager, track);
-                    event.getHook().sendMessage("**" + track.getInfo().title + "** zur Queue hinzugefuegt").queue();
+                    event.getHook().sendMessage(Lang.t(gid, "track.added", track.getInfo().title)).queue();
                 } else {
                     boolean first = true;
                     for (AudioTrack track : playlist.getTracks()) {
@@ -318,18 +346,18 @@ public class CommandHandler extends ListenerAdapter {
                             musicManager.scheduler.queue(track);
                         }
                     }
-                    event.getHook().sendMessage("**" + playlist.getTracks().size() + " Songs** aus Playlist **" + playlist.getName() + "** hinzugefuegt").queue();
+                    event.getHook().sendMessage(Lang.t(gid, "playlist.added", playlist.getTracks().size(), playlist.getName())).queue();
                 }
             }
 
             @Override
             public void noMatches() {
-                event.getHook().sendMessage("Nichts gefunden fuer: " + event.getOption("query").getAsString()).queue();
+                event.getHook().sendMessage(Lang.t(gid, "nothing.found", event.getOption("query").getAsString())).queue();
             }
 
             @Override
             public void loadFailed(FriendlyException e) {
-                event.getHook().sendMessage("Fehler beim Laden: " + e.getMessage()).queue();
+                event.getHook().sendMessage(Lang.t(gid, "load.error", e.getMessage())).queue();
                 System.err.println("Load failed: " + e.getMessage());
                 e.printStackTrace();
             }
@@ -337,15 +365,16 @@ public class CommandHandler extends ListenerAdapter {
     }
 
     private void handleSpotifyPlay(SlashCommandInteractionEvent event, Guild guild, AudioChannelUnion channel, GuildMusicManager musicManager, String url) {
+        long gid = guild.getIdLong();
         if (!spotify.isConfigured()) {
-            event.getHook().sendMessage("Spotify ist nicht konfiguriert! Trage `spotify.client.id` und `spotify.client.secret` in config.properties ein.").queue();
+            event.getHook().sendMessage(Lang.t(gid, "spotify.not.configured")).queue();
             return;
         }
         npScheduler.execute(() -> {
             try {
                 List<String> searches = spotify.resolve(url);
                 if (searches.isEmpty()) {
-                    event.getHook().sendMessage("Keine Songs in diesem Spotify-Link gefunden.").queue();
+                    event.getHook().sendMessage(Lang.t(gid, "spotify.no.songs")).queue();
                     return;
                 }
                 if (searches.size() == 1) {
@@ -353,7 +382,7 @@ public class CommandHandler extends ListenerAdapter {
                         @Override public void trackLoaded(AudioTrack track) {
                             connectAndPlay(guild, channel, musicManager, track);
                             event.getHook().sendMessageEmbeds(new EmbedBuilder()
-                                    .setDescription("\uD83C\uDFB5 **" + track.getInfo().title + "** zur Queue hinzugefuegt (via Spotify)")
+                                    .setDescription(Lang.t(gid, "spotify.added", track.getInfo().title))
                                     .setColor(0x1DB954).build()).queue();
                         }
                         @Override public void playlistLoaded(AudioPlaylist playlist) {
@@ -361,19 +390,19 @@ public class CommandHandler extends ListenerAdapter {
                                 AudioTrack track = playlist.getTracks().get(0);
                                 connectAndPlay(guild, channel, musicManager, track);
                                 event.getHook().sendMessageEmbeds(new EmbedBuilder()
-                                        .setDescription("\uD83C\uDFB5 **" + track.getInfo().title + "** zur Queue hinzugefuegt (via Spotify)")
+                                        .setDescription(Lang.t(gid, "spotify.added", track.getInfo().title))
                                         .setColor(0x1DB954).build()).queue();
                             }
                         }
-                        @Override public void noMatches() { event.getHook().sendMessage("Song nicht auf YouTube gefunden.").queue(); }
-                        @Override public void loadFailed(FriendlyException e) { event.getHook().sendMessage("Fehler: " + e.getMessage()).queue(); }
+                        @Override public void noMatches() { event.getHook().sendMessage(Lang.t(gid, "spotify.not.on.youtube")).queue(); }
+                        @Override public void loadFailed(FriendlyException e) { event.getHook().sendMessage(Lang.t(gid, "error.generic", e.getMessage())).queue(); }
                     });
                 } else {
                     final int[] loaded = {0};
                     final int[] failed = {0};
                     final int total = searches.size();
                     event.getHook().sendMessageEmbeds(new EmbedBuilder()
-                            .setDescription("\uD83C\uDFB5 Lade **" + total + " Songs** von Spotify...")
+                            .setDescription(Lang.t(gid, "spotify.loading", total))
                             .setColor(0x1DB954).build()).queue();
                     for (String search : searches) {
                         playerManager.loadItemOrdered(musicManager, search, new AudioLoadResultHandler() {
@@ -400,8 +429,8 @@ public class CommandHandler extends ListenerAdapter {
                             }
                             private void checkDone() {
                                 if (loaded[0] + failed[0] >= total) {
-                                    String msg = "✅ **" + loaded[0] + "/" + total + " Songs** von Spotify geladen";
-                                    if (failed[0] > 0) msg += " (" + failed[0] + " nicht gefunden)";
+                                    String msg = Lang.t(gid, "spotify.loaded", loaded[0], total);
+                                    if (failed[0] > 0) msg += Lang.t(gid, "spotify.failed.count", failed[0]);
                                     event.getHook().sendMessageEmbeds(new EmbedBuilder()
                                             .setDescription(msg).setColor(0x1DB954).build()).queue();
                                 }
@@ -410,21 +439,22 @@ public class CommandHandler extends ListenerAdapter {
                     }
                 }
             } catch (Exception e) {
-                event.getHook().sendMessage("Spotify-Fehler: " + e.getMessage()).queue();
+                event.getHook().sendMessage(Lang.t(gid, "spotify.error", e.getMessage())).queue();
             }
         });
     }
 
     private void handleRadio(SlashCommandInteractionEvent event) {
+        long gid = event.getGuild().getIdLong();
         GuildVoiceState voiceState = event.getMember().getVoiceState();
         if (voiceState == null || !voiceState.inAudioChannel()) {
-            event.reply("Du musst in einem Voice-Channel sein!").setEphemeral(true).queue();
+            event.reply(Lang.t(gid, "voice.required")).setEphemeral(true).queue();
             return;
         }
         String key = event.getOption("sender").getAsString().toLowerCase();
         String[] station = RADIO_STATIONS.get(key);
         if (station == null) {
-            event.reply("Unbekannter Sender!").setEphemeral(true).queue();
+            event.reply(Lang.t(gid, "radio.unknown")).setEphemeral(true).queue();
             return;
         }
 
@@ -437,19 +467,19 @@ public class CommandHandler extends ListenerAdapter {
             @Override public void trackLoaded(AudioTrack track) {
                 connectAndPlay(guild, channel, musicManager, track, true);
                 event.getHook().sendMessageEmbeds(new EmbedBuilder()
-                        .setDescription("\uD83D\uDCFB **" + station[0] + "** gestartet")
+                        .setDescription(Lang.t(gid, "radio.started", station[0]))
                         .setColor(0xEB459E).build()).queue();
             }
             @Override public void playlistLoaded(AudioPlaylist playlist) {
                 if (!playlist.getTracks().isEmpty()) {
                     connectAndPlay(guild, channel, musicManager, playlist.getTracks().get(0), true);
                     event.getHook().sendMessageEmbeds(new EmbedBuilder()
-                            .setDescription("\uD83D\uDCFB **" + station[0] + "** gestartet")
+                            .setDescription(Lang.t(gid, "radio.started", station[0]))
                             .setColor(0xEB459E).build()).queue();
                 }
             }
-            @Override public void noMatches() { event.getHook().sendMessage("Radio-Stream nicht erreichbar.").queue(); }
-            @Override public void loadFailed(FriendlyException e) { event.getHook().sendMessage("Fehler: " + e.getMessage()).queue(); }
+            @Override public void noMatches() { event.getHook().sendMessage(Lang.t(gid, "radio.unreachable")).queue(); }
+            @Override public void loadFailed(FriendlyException e) { event.getHook().sendMessage(Lang.t(gid, "error.generic", e.getMessage())).queue(); }
         });
     }
 
@@ -574,17 +604,18 @@ public class CommandHandler extends ListenerAdapter {
     }
 
     private void handleSkip(SlashCommandInteractionEvent event) {
+        long gid = event.getGuild().getIdLong();
         GuildMusicManager manager = getGuildMusic(event.getGuild());
         AudioTrack next = manager.scheduler.getQueue().peek();
-        boolean nonstop = nonstopGuilds.contains(event.getGuild().getIdLong());
+        boolean nonstop = nonstopGuilds.contains(gid);
         manager.scheduler.skip();
         EmbedBuilder embed = new EmbedBuilder().setColor(0x5865F2);
         if (next != null) {
-            embed.setDescription("⏭ Song uebersprungen\n\uD83C\uDFB6 Jetzt: **" + next.getInfo().title + "**");
+            embed.setDescription(Lang.t(gid, "skip.next", next.getInfo().title));
         } else if (nonstop) {
-            embed.setDescription("⏭ Song uebersprungen — \uD83D\uDD25 lade naechsten Random-Track...");
+            embed.setDescription(Lang.t(gid, "skip.nonstop"));
         } else {
-            embed.setDescription("⏭ Song uebersprungen — Queue ist leer");
+            embed.setDescription(Lang.t(gid, "skip.empty"));
         }
         event.replyEmbeds(embed.build()).queue();
     }
@@ -597,60 +628,63 @@ public class CommandHandler extends ListenerAdapter {
         installNonstopIdleHandler(guildId, manager);
         scheduleAutoNonstop(guildId, manager);
         event.replyEmbeds(new EmbedBuilder()
-                .setDescription("⏹\uFE0F Musik gestoppt und Queue geleert\n💤 Nonstop startet in 2 Min wenn nichts gespielt wird")
+                .setDescription(Lang.t(guildId, "stop.full"))
                 .setColor(0xED4245).build()).queue();
     }
 
     private void handlePause(SlashCommandInteractionEvent event) {
+        long gid = event.getGuild().getIdLong();
         GuildMusicManager manager = getGuildMusic(event.getGuild());
         manager.player.setPaused(true);
         AudioTrack track = manager.player.getPlayingTrack();
-        String desc = "⏸\uFE0F Pausiert";
-        if (track != null) desc += " — **" + track.getInfo().title + "**";
+        String desc = Lang.t(gid, "pause");
+        if (track != null) desc += " \u2014 **" + track.getInfo().title + "**";
         event.replyEmbeds(new EmbedBuilder().setDescription(desc).setColor(0xFEE75C).build()).queue();
     }
 
     private void handleResume(SlashCommandInteractionEvent event) {
+        long gid = event.getGuild().getIdLong();
         GuildMusicManager manager = getGuildMusic(event.getGuild());
         manager.player.setPaused(false);
         AudioTrack track = manager.player.getPlayingTrack();
-        String desc = "▶\uFE0F Fortgesetzt";
-        if (track != null) desc += " — **" + track.getInfo().title + "**";
+        String desc = Lang.t(gid, "resume");
+        if (track != null) desc += " \u2014 **" + track.getInfo().title + "**";
         event.replyEmbeds(new EmbedBuilder().setDescription(desc).setColor(0x57F287).build()).queue();
     }
 
     private static final int QUEUE_PAGE_SIZE = 10;
 
     private void handleQueue(SlashCommandInteractionEvent event) {
+        long gid = event.getGuild().getIdLong();
         GuildMusicManager manager = getGuildMusic(event.getGuild());
         List<AudioTrack> tracks = new ArrayList<>(manager.scheduler.getQueue());
         AudioTrack current = manager.player.getPlayingTrack();
 
         if (tracks.isEmpty() && current == null) {
-            event.reply("Die Queue ist leer").queue();
+            event.reply(Lang.t(gid, "queue.empty")).queue();
             return;
         }
 
         int totalPages = Math.max(1, (int) Math.ceil(tracks.size() / (double) QUEUE_PAGE_SIZE));
-        event.replyEmbeds(buildQueueEmbed(tracks, current, manager, 0, totalPages).build())
+        event.replyEmbeds(buildQueueEmbed(gid, tracks, current, manager, 0, totalPages).build())
                 .addComponents(ActionRow.of(
                         Button.secondary("queue_prev_0", Emoji.fromUnicode("◀️")).withDisabled(true),
-                        Button.secondary("queue_page", "Seite 1/" + totalPages).withDisabled(true),
+                        Button.secondary("queue_page", Lang.t(gid, "page") + " 1/" + totalPages).withDisabled(true),
                         Button.secondary("queue_next_0", Emoji.fromUnicode("▶️")).withDisabled(totalPages <= 1)
                 )).queue();
     }
 
-    private EmbedBuilder buildQueueEmbed(List<AudioTrack> tracks, AudioTrack current, GuildMusicManager manager, int page, int totalPages) {
+    private EmbedBuilder buildQueueEmbed(long gid, List<AudioTrack> tracks, AudioTrack current, GuildMusicManager manager, int page, int totalPages) {
         StringBuilder sb = new StringBuilder();
 
         if (current != null && page == 0) {
-            sb.append("\uD83C\uDFB6 **Spielt gerade:**\n")
+            sb.append(Lang.t(gid, "now.playing.now")).append("\n")
               .append("`").append(formatTime(current.getPosition())).append(" / ").append(formatTime(current.getDuration())).append("` ")
               .append(current.getInfo().title).append("\n\n");
         }
 
         if (!tracks.isEmpty()) {
-            sb.append("**Warteschlange:**\n");
+            sb.append(Lang.t(gid, "queue.list")).append("\n");
             int start = page * QUEUE_PAGE_SIZE;
             int end = Math.min(start + QUEUE_PAGE_SIZE, tracks.size());
             for (int i = start; i < end; i++) {
@@ -666,14 +700,14 @@ public class CommandHandler extends ListenerAdapter {
 
         String repeatLabel = switch (manager.scheduler.getRepeatMode()) {
             case OFF -> "";
-            case TRACK -> "  |  \uD83D\uDD02 Song Repeat";
-            case QUEUE -> "  |  \uD83D\uDD01 Queue Repeat";
+            case TRACK -> Lang.t(gid, "repeat.song.full");
+            case QUEUE -> Lang.t(gid, "repeat.queue.full");
         };
 
         return new EmbedBuilder()
-                .setTitle("\uD83D\uDCCB Warteschlange")
+                .setTitle(Lang.t(gid, "queue.title"))
                 .setDescription(sb.toString())
-                .setFooter(tracks.size() + " Songs in der Queue  |  Gesamtdauer: " + formatTimeLong(totalMs) + repeatLabel)
+                .setFooter(Lang.t(gid, "queue.footer", tracks.size(), formatTimeLong(totalMs), repeatLabel))
                 .setColor(0x5865F2);
     }
 
@@ -692,24 +726,24 @@ public class CommandHandler extends ListenerAdapter {
         boolean nonstop = nonstopGuilds.contains(guildId);
 
         if (track == null && !nonstop) {
-            event.reply("Gerade spielt nichts").queue();
+            event.reply(Lang.t(guildId, "nothing.playing")).queue();
             return;
         }
 
         cancelNpUpdate(guildId);
 
         EmbedBuilder embed = track != null
-                ? buildNowPlayingEmbed(track, manager)
-                : buildLoadingEmbed();
+                ? buildNowPlayingEmbed(guildId, track, manager)
+                : buildLoadingEmbed(guildId);
         event.replyEmbeds(embed.build())
                 .addComponents(npButtons(manager))
                 .queue(hook -> startNpAutoUpdate(guildId, manager, event.getHook()));
     }
 
-    private EmbedBuilder buildLoadingEmbed() {
+    private EmbedBuilder buildLoadingEmbed(long gid) {
         return new EmbedBuilder()
-                .setTitle("\uD83C\uDFB5 Now Playing")
-                .setDescription("\uD83D\uDD25 **Nonstop-Modus** — lade naechsten Random-Track...")
+                .setTitle(Lang.t(gid, "now.playing.title"))
+                .setDescription(Lang.t(gid, "nonstop.loading"))
                 .setColor(0x5865F2);
     }
 
@@ -724,8 +758,8 @@ public class CommandHandler extends ListenerAdapter {
                 boolean nonstop = nonstopGuilds.contains(guildId);
                 if (current == null && !nonstop) return;
                 EmbedBuilder embed = current != null
-                        ? buildNowPlayingEmbed(current, manager)
-                        : buildLoadingEmbed();
+                        ? buildNowPlayingEmbed(guildId, current, manager)
+                        : buildLoadingEmbed(guildId);
                 hook.editOriginalEmbeds(embed.build())
                         .setComponents(npButtons(manager)).queue(null, err -> {});
             } catch (Exception ignored) {}
@@ -744,7 +778,7 @@ public class CommandHandler extends ListenerAdapter {
         }
     }
 
-    private EmbedBuilder buildNowPlayingEmbed(AudioTrack track, GuildMusicManager manager) {
+    private EmbedBuilder buildNowPlayingEmbed(long gid, AudioTrack track, GuildMusicManager manager) {
         long pos = track.getPosition();
         long dur = track.getDuration();
         long remaining = dur - pos;
@@ -752,18 +786,20 @@ public class CommandHandler extends ListenerAdapter {
         String progressBar = buildProgressBar(pos, dur);
         String repeatLabel = switch (manager.scheduler.getRepeatMode()) {
             case OFF -> "";
-            case TRACK -> "  |  \uD83D\uDD02 Song";
-            case QUEUE -> "  |  \uD83D\uDD01 Queue";
+            case TRACK -> Lang.t(gid, "repeat.song.short");
+            case QUEUE -> Lang.t(gid, "repeat.queue.short");
         };
 
-        String status = manager.player.isPaused() ? "⏸\uFE0F Pausiert" : "\uD83D\uDD0A Vol: " + manager.player.getVolume() + "%";
+        String status = manager.player.isPaused()
+                ? Lang.t(gid, "pause")
+                : Lang.t(gid, "now.playing.status.vol", manager.player.getVolume());
 
         return new EmbedBuilder()
-                .setTitle("\uD83C\uDFB5 Now Playing")
+                .setTitle(Lang.t(gid, "now.playing.title"))
                 .setDescription("**" + track.getInfo().title + "**\n" +
                         track.getInfo().author + "\n\n" +
                         progressBar + "\n" +
-                        "`" + position + "`  ⏳ `-" + formatTime(remaining) + "`" + repeatLabel + "\n\n" +
+                        "`" + position + "`  \u23F3 `-" + formatTime(remaining) + "`" + repeatLabel + "\n\n" +
                         status)
                 .setColor(0x5865F2)
                 .setThumbnail("https://img.youtube.com/vi/" + extractVideoId(track.getInfo().uri) + "/0.jpg");
@@ -823,7 +859,7 @@ public class CommandHandler extends ListenerAdapter {
                 if (track != null) track.setPosition(0);
                 AudioTrack t = track != null ? track : manager.player.getPlayingTrack();
                 if (t != null) {
-                    event.editMessageEmbeds(buildNowPlayingEmbed(t, manager).build())
+                    event.editMessageEmbeds(buildNowPlayingEmbed(guildId, t, manager).build())
                             .setComponents(npButtons(manager)).queue();
                     startNpAutoUpdate(guildId, manager, event.getHook());
                 }
@@ -832,27 +868,27 @@ public class CommandHandler extends ListenerAdapter {
                 manager.player.setPaused(!manager.player.isPaused());
                 track = manager.player.getPlayingTrack();
                 if (track != null) {
-                    event.editMessageEmbeds(buildNowPlayingEmbed(track, manager).build())
+                    event.editMessageEmbeds(buildNowPlayingEmbed(guildId, track, manager).build())
                             .setComponents(npButtons(manager)).queue();
                     startNpAutoUpdate(guildId, manager, event.getHook());
                 } else {
-                    event.reply("Gerade spielt nichts").setEphemeral(true).queue();
+                    event.reply(Lang.t(guildId, "nothing.playing")).setEphemeral(true).queue();
                 }
             }
             case "np_skip" -> {
                 manager.scheduler.skip();
                 AudioTrack next = manager.player.getPlayingTrack();
                 if (next != null) {
-                    event.editMessageEmbeds(buildNowPlayingEmbed(next, manager).build())
+                    event.editMessageEmbeds(buildNowPlayingEmbed(guildId, next, manager).build())
                             .setComponents(npButtons(manager)).queue();
                     startNpAutoUpdate(guildId, manager, event.getHook());
                 } else if (nonstopGuilds.contains(guildId)) {
-                    event.editMessageEmbeds(buildLoadingEmbed().build())
+                    event.editMessageEmbeds(buildLoadingEmbed(guildId).build())
                             .setComponents(npButtons(manager)).queue();
                     startNpAutoUpdate(guildId, manager, event.getHook());
                 } else {
                     cancelNpUpdate(guildId);
-                    event.editMessage("⏭ Uebersprungen — Queue ist leer").setComponents().setEmbeds().queue();
+                    event.editMessage(Lang.t(guildId, "skipped.empty.short")).setComponents().setEmbeds().queue();
                 }
             }
             case "np_stop" -> {
@@ -861,12 +897,13 @@ public class CommandHandler extends ListenerAdapter {
                 manager.scheduler.stop();
                 installNonstopIdleHandler(guildId, manager);
                 scheduleAutoNonstop(guildId, manager);
-                event.editMessage("⏹️ Musik gestoppt — 💤 Nonstop startet in 2 Min").setComponents().setEmbeds().queue();
+                event.editMessage(Lang.t(guildId, "stop.short")).setComponents().setEmbeds().queue();
             }
         }
     }
 
     private void handleQueueButton(ButtonInteractionEvent event) {
+        long gid = event.getGuild().getIdLong();
         GuildMusicManager manager = getGuildMusic(event.getGuild());
         List<AudioTrack> tracks = new ArrayList<>(manager.scheduler.getQueue());
         AudioTrack current = manager.player.getPlayingTrack();
@@ -880,25 +917,26 @@ public class CommandHandler extends ListenerAdapter {
             currentPage = Math.min(totalPages - 1, Integer.parseInt(id.substring(11)) + 1);
         }
 
-        event.editMessageEmbeds(buildQueueEmbed(tracks, current, manager, currentPage, totalPages).build())
+        event.editMessageEmbeds(buildQueueEmbed(gid, tracks, current, manager, currentPage, totalPages).build())
                 .setComponents(ActionRow.of(
                         Button.secondary("queue_prev_" + currentPage, Emoji.fromUnicode("◀️")).withDisabled(currentPage == 0),
-                        Button.secondary("queue_page", "Seite " + (currentPage + 1) + "/" + totalPages).withDisabled(true),
+                        Button.secondary("queue_page", Lang.t(gid, "page") + " " + (currentPage + 1) + "/" + totalPages).withDisabled(true),
                         Button.secondary("queue_next_" + currentPage, Emoji.fromUnicode("▶️")).withDisabled(currentPage >= totalPages - 1)
                 )).queue();
     }
 
     private void handleVolume(SlashCommandInteractionEvent event) {
+        long gid = event.getGuild().getIdLong();
         int vol = event.getOption("vol").getAsInt();
         if (vol < 0 || vol > 100) {
-            event.reply("Lautstaerke muss zwischen 0 und 100 sein").setEphemeral(true).queue();
+            event.reply(Lang.t(gid, "volume.range")).setEphemeral(true).queue();
             return;
         }
         GuildMusicManager manager = getGuildMusic(event.getGuild());
         manager.player.setVolume(vol);
         String bar = buildVolumeBar(vol);
         event.replyEmbeds(new EmbedBuilder()
-                .setDescription("\uD83D\uDD0A Lautstaerke: **" + vol + "%**\n" + bar)
+                .setDescription(Lang.t(gid, "volume.set", vol, bar))
                 .setColor(0x5865F2).build()).queue();
     }
 
@@ -908,9 +946,10 @@ public class CommandHandler extends ListenerAdapter {
     }
 
     private void handleJoin(SlashCommandInteractionEvent event) {
+        long gid = event.getGuild().getIdLong();
         GuildVoiceState voiceState = event.getMember().getVoiceState();
         if (voiceState == null || !voiceState.inAudioChannel()) {
-            event.reply("Du musst in einem Voice-Channel sein!").setEphemeral(true).queue();
+            event.reply(Lang.t(gid, "voice.required")).setEphemeral(true).queue();
             return;
         }
         AudioChannelUnion channel = voiceState.getChannel();
@@ -925,7 +964,7 @@ public class CommandHandler extends ListenerAdapter {
         installNonstopIdleHandler(guildId, musicManager);
         scheduleAutoNonstop(guildId, musicManager);
         event.replyEmbeds(new EmbedBuilder()
-                .setDescription("\uD83D\uDD0A Joined **" + channel.getName() + "**")
+                .setDescription(Lang.t(gid, "joined", channel.getName()))
                 .setColor(0x57F287).build()).queue();
     }
 
@@ -939,99 +978,104 @@ public class CommandHandler extends ListenerAdapter {
         musicManagers.remove(guildId);
         event.getGuild().getAudioManager().closeAudioConnection();
         event.replyEmbeds(new EmbedBuilder()
-                .setDescription("\uD83D\uDC4B Tschuess!")
+                .setDescription(Lang.t(guildId, "bye"))
                 .setColor(0xED4245).build()).queue();
     }
 
     private void handleRepeat(SlashCommandInteractionEvent event) {
+        long gid = event.getGuild().getIdLong();
         GuildMusicManager manager = getGuildMusic(event.getGuild());
         String mode = event.getOption("mode").getAsString().toUpperCase();
         try {
             TrackScheduler.RepeatMode repeatMode = TrackScheduler.RepeatMode.valueOf(mode);
             manager.scheduler.setRepeatMode(repeatMode);
             String label = switch (repeatMode) {
-                case OFF -> "➡\uFE0F Repeat: **Aus**";
-                case TRACK -> "\uD83D\uDD02 Repeat: **Song wiederholen**";
-                case QUEUE -> "\uD83D\uDD01 Repeat: **Queue wiederholen**";
+                case OFF -> Lang.t(gid, "repeat.off");
+                case TRACK -> Lang.t(gid, "repeat.track.set");
+                case QUEUE -> Lang.t(gid, "repeat.queue.set");
             };
             event.replyEmbeds(new EmbedBuilder().setDescription(label).setColor(0x5865F2).build()).queue();
         } catch (IllegalArgumentException e) {
-            event.reply("Ungueltiger Modus! Nutze: `off`, `track` oder `queue`").setEphemeral(true).queue();
+            event.reply(Lang.t(gid, "repeat.invalid")).setEphemeral(true).queue();
         }
     }
 
     private void handleShuffle(SlashCommandInteractionEvent event) {
+        long gid = event.getGuild().getIdLong();
         GuildMusicManager manager = getGuildMusic(event.getGuild());
         if (manager.scheduler.getQueue().isEmpty()) {
-            event.reply("Die Queue ist leer").setEphemeral(true).queue();
+            event.reply(Lang.t(gid, "queue.empty")).setEphemeral(true).queue();
             return;
         }
         manager.scheduler.shuffle();
         event.replyEmbeds(new EmbedBuilder()
-                .setDescription("\uD83D\uDD00 Queue wurde gemischt! (" + manager.scheduler.getQueue().size() + " Songs)")
+                .setDescription(Lang.t(gid, "shuffled", manager.scheduler.getQueue().size()))
                 .setColor(0x5865F2).build()).queue();
     }
 
     private void handleMove(SlashCommandInteractionEvent event) {
+        long gid = event.getGuild().getIdLong();
         GuildMusicManager manager = getGuildMusic(event.getGuild());
         int from = event.getOption("von").getAsInt();
         int to = event.getOption("nach").getAsInt();
         int size = manager.scheduler.getQueue().size();
         if (from < 1 || from > size || to < 1 || to > size) {
-            event.reply("Ungueltige Position! Queue hat **" + size + "** Songs.").setEphemeral(true).queue();
+            event.reply(Lang.t(gid, "pos.invalid", size)).setEphemeral(true).queue();
             return;
         }
         List<AudioTrack> tracks = new ArrayList<>(manager.scheduler.getQueue());
         String title = tracks.get(from - 1).getInfo().title;
         if (manager.scheduler.moveInQueue(from - 1, to - 1)) {
             event.replyEmbeds(new EmbedBuilder()
-                    .setDescription("↕️ **" + title + "** von Position " + from + " nach " + to + " verschoben")
+                    .setDescription(Lang.t(gid, "moved", title, from, to))
                     .setColor(0x5865F2).build()).queue();
         } else {
-            event.reply("Konnte Song nicht verschieben").setEphemeral(true).queue();
+            event.reply(Lang.t(gid, "move.failed")).setEphemeral(true).queue();
         }
     }
 
     private void handleSkipTo(SlashCommandInteractionEvent event) {
+        long gid = event.getGuild().getIdLong();
         GuildMusicManager manager = getGuildMusic(event.getGuild());
         int pos = event.getOption("position").getAsInt();
         int size = manager.scheduler.getQueue().size();
         if (pos < 1 || pos > size) {
-            event.reply("Ungueltige Position! Queue hat **" + size + "** Songs.").setEphemeral(true).queue();
+            event.reply(Lang.t(gid, "pos.invalid", size)).setEphemeral(true).queue();
             return;
         }
         AudioTrack track = manager.scheduler.skipTo(pos - 1);
         if (track != null) {
             event.replyEmbeds(new EmbedBuilder()
-                    .setDescription("⏭ Uebersprungen zu **#" + pos + "**: **" + track.getInfo().title + "**")
+                    .setDescription(Lang.t(gid, "skipto.success", pos, track.getInfo().title))
                     .setColor(0x5865F2).build()).queue();
         } else {
-            event.reply("Konnte nicht springen").setEphemeral(true).queue();
+            event.reply(Lang.t(gid, "skipto.failed")).setEphemeral(true).queue();
         }
     }
 
     private void handleSave(SlashCommandInteractionEvent event) {
+        long gid = event.getGuild().getIdLong();
         GuildMusicManager manager = getGuildMusic(event.getGuild());
         AudioTrack track = manager.player.getPlayingTrack();
         if (track == null) {
-            event.reply("Gerade spielt nichts").setEphemeral(true).queue();
+            event.reply(Lang.t(gid, "nothing.playing")).setEphemeral(true).queue();
             return;
         }
         EmbedBuilder embed = new EmbedBuilder()
-                .setTitle("\uD83D\uDCBE Gespeicherter Song")
+                .setTitle(Lang.t(gid, "save.title"))
                 .setDescription("**" + track.getInfo().title + "**\n" +
                         track.getInfo().author + "\n\n" +
-                        "\uD83D\uDD17 [Link oeffnen](" + track.getInfo().uri + ")")
+                        Lang.t(gid, "save.open") + ": " + track.getInfo().uri)
                 .setThumbnail("https://img.youtube.com/vi/" + extractVideoId(track.getInfo().uri) + "/0.jpg")
                 .setColor(0x57F287);
         event.getUser().openPrivateChannel().queue(
                 dm -> {
                     dm.sendMessageEmbeds(embed.build()).queue(
-                            success -> event.reply("💌 Song wurde dir per DM geschickt!").setEphemeral(true).queue(),
-                            fail -> event.reply("Konnte dir keine DM senden. Aktiviere DMs von Server-Mitgliedern!").setEphemeral(true).queue()
+                            success -> event.reply(Lang.t(gid, "save.dm.sent")).setEphemeral(true).queue(),
+                            fail -> event.reply(Lang.t(gid, "save.dm.failed")).setEphemeral(true).queue()
                     );
                 },
-                fail -> event.reply("Konnte dir keine DM senden.").setEphemeral(true).queue()
+                fail -> event.reply(Lang.t(gid, "save.dm.failed.short")).setEphemeral(true).queue()
         );
     }
 
@@ -1048,7 +1092,7 @@ public class CommandHandler extends ListenerAdapter {
                 autoNonstopDisabledGuilds.add(guildId);
                 cancelAutoNonstop(guildId);
                 event.replyEmbeds(new EmbedBuilder()
-                        .setDescription("🚫 **Auto-Nonstop deaktiviert** — Bot startet keine Musik mehr nach 2 Min Idle")
+                        .setDescription(Lang.t(guildId, "auto.nonstop.off"))
                         .setColor(0xED4245).build()).queue();
                 return;
             } else if (modus.equals("auto-on")) {
@@ -1060,7 +1104,7 @@ public class CommandHandler extends ListenerAdapter {
                     }
                 }
                 event.replyEmbeds(new EmbedBuilder()
-                        .setDescription("✅ **Auto-Nonstop aktiviert** — Bot spielt nach 2 Min Idle automatisch Musik")
+                        .setDescription(Lang.t(guildId, "auto.nonstop.on"))
                         .setColor(0x57F287).build()).queue();
                 return;
             }
@@ -1070,14 +1114,14 @@ public class CommandHandler extends ListenerAdapter {
             nonstopGuilds.remove(guildId);
             installNonstopIdleHandler(guildId, musicManager);
             event.replyEmbeds(new EmbedBuilder()
-                    .setDescription("💤 **Nonstop-Modus deaktiviert**")
+                    .setDescription(Lang.t(guildId, "nonstop.off"))
                     .setColor(0xED4245).build()).queue();
             return;
         }
 
         GuildVoiceState voiceState = event.getMember().getVoiceState();
         if (voiceState == null || !voiceState.inAudioChannel()) {
-            event.reply("Du musst in einem Voice-Channel sein!").setEphemeral(true).queue();
+            event.reply(Lang.t(guildId, "voice.required")).setEphemeral(true).queue();
             return;
         }
         AudioChannelUnion channel = voiceState.getChannel();
@@ -1095,7 +1139,7 @@ public class CommandHandler extends ListenerAdapter {
         lastChannelIds.put(guildId, channel.getIdLong());
 
         event.replyEmbeds(new EmbedBuilder()
-                .setDescription("🔥 **Nonstop-Modus aktiviert** — random Tekk, Techno, Uptempo & Co.")
+                .setDescription(Lang.t(guildId, "nonstop.on"))
                 .setColor(0x57F287).build()).queue();
 
         if (musicManager.player.getPlayingTrack() == null) {
@@ -1164,15 +1208,16 @@ public class CommandHandler extends ListenerAdapter {
     }
 
     private void handleFilter(SlashCommandInteractionEvent event) {
+        long gid = event.getGuild().getIdLong();
         GuildMusicManager manager = getGuildMusic(event.getGuild());
         String filter = event.getOption("preset").getAsString().toLowerCase();
         manager.applyFilter(filter);
         String label = switch (filter) {
-            case "bassboost" -> "\uD83D\uDD0A **Bassboost** aktiviert";
-            case "treble" -> "🎵 **Treble Boost** aktiviert";
-            case "pop" -> "🎤 **Pop** Equalizer aktiviert";
-            case "rock" -> "🤘 **Rock** Equalizer aktiviert";
-            default -> "➡️ Filter **deaktiviert**";
+            case "bassboost" -> Lang.t(gid, "filter.bassboost");
+            case "treble" -> Lang.t(gid, "filter.treble");
+            case "pop" -> Lang.t(gid, "filter.pop");
+            case "rock" -> Lang.t(gid, "filter.rock");
+            default -> Lang.t(gid, "filter.off");
         };
         event.replyEmbeds(new EmbedBuilder()
                 .setDescription(label)
@@ -1180,22 +1225,23 @@ public class CommandHandler extends ListenerAdapter {
     }
 
     private void handleSeek(SlashCommandInteractionEvent event) {
+        long gid = event.getGuild().getIdLong();
         GuildMusicManager manager = getGuildMusic(event.getGuild());
         AudioTrack track = manager.player.getPlayingTrack();
         if (track == null) {
-            event.reply("Gerade spielt nichts").setEphemeral(true).queue();
+            event.reply(Lang.t(gid, "nothing.playing")).setEphemeral(true).queue();
             return;
         }
         String input = event.getOption("time").getAsString().trim();
         long ms = parseTimeToMs(input);
         if (ms < 0) {
-            event.reply("Ungueltiges Format! Nutze z.B. `1:30` oder `90` (Sekunden)").setEphemeral(true).queue();
+            event.reply(Lang.t(gid, "seek.invalid")).setEphemeral(true).queue();
             return;
         }
         if (ms > track.getDuration()) ms = track.getDuration();
         track.setPosition(ms);
         event.replyEmbeds(new EmbedBuilder()
-                .setDescription("⏩ Gesprungen zu **" + formatTime(ms) + "** / " + formatTime(track.getDuration()))
+                .setDescription(Lang.t(gid, "seek.success", formatTime(ms), formatTime(track.getDuration())))
                 .setColor(0x5865F2).build()).queue();
     }
 
@@ -1216,84 +1262,63 @@ public class CommandHandler extends ListenerAdapter {
     }
 
     private void handleRemove(SlashCommandInteractionEvent event) {
+        long gid = event.getGuild().getIdLong();
         GuildMusicManager manager = getGuildMusic(event.getGuild());
         int pos = event.getOption("position").getAsInt();
         if (pos < 1 || pos > manager.scheduler.getQueue().size()) {
-            event.reply("Ungueltige Position! Queue hat **" + manager.scheduler.getQueue().size() + "** Songs.").setEphemeral(true).queue();
+            event.reply(Lang.t(gid, "pos.invalid", manager.scheduler.getQueue().size())).setEphemeral(true).queue();
             return;
         }
         AudioTrack removed = manager.scheduler.removeFromQueue(pos - 1);
         if (removed != null) {
             event.replyEmbeds(new EmbedBuilder()
-                    .setDescription("🗑️ **" + removed.getInfo().title + "** aus der Queue entfernt (Position " + pos + ")")
+                    .setDescription(Lang.t(gid, "removed", removed.getInfo().title, pos))
                     .setColor(0xED4245).build()).queue();
         } else {
-            event.reply("Konnte Song nicht entfernen").setEphemeral(true).queue();
+            event.reply(Lang.t(gid, "remove.failed")).setEphemeral(true).queue();
         }
     }
 
     private void handleClear(SlashCommandInteractionEvent event) {
+        long gid = event.getGuild().getIdLong();
         GuildMusicManager manager = getGuildMusic(event.getGuild());
         int size = manager.scheduler.getQueue().size();
         if (size == 0) {
-            event.reply("Die Queue ist bereits leer").setEphemeral(true).queue();
+            event.reply(Lang.t(gid, "queue.already.empty")).setEphemeral(true).queue();
             return;
         }
         manager.scheduler.clearQueue();
         event.replyEmbeds(new EmbedBuilder()
-                .setDescription("🗑️ **" + size + " Songs** aus der Queue entfernt")
+                .setDescription(Lang.t(gid, "cleared", size))
                 .setColor(0xED4245).build()).queue();
     }
 
     private void handleHelp(SlashCommandInteractionEvent event) {
+        long gid = event.getGuild().getIdLong();
         EmbedBuilder embed = new EmbedBuilder()
-                .setTitle("\uD83C\uDFB5 Music Bot — Hilfe")
+                .setTitle(Lang.t(gid, "help.title"))
                 .setColor(0x5865F2)
-                .addField("\uD83C\uDFA7 Musik",
-                        "`/play <URL/Suche>` — Song, Playlist oder Radio\n" +
-                        "`/skip` — Song ueberspringen\n" +
-                        "`/stop` — Musik stoppen & Queue leeren\n" +
-                        "`/pause` — Pausieren\n" +
-                        "`/resume` — Fortsetzen\n" +
-                        "`/volume <0-100>` — Lautstaerke aendern\n" +
-                        "`/radio <sender>` — Live-Radio hoeren", false)
-                .addField("\uD83D\uDCCB Queue & Wiedergabe",
-                        "`/queue` — Warteschlange anzeigen\n" +
-                        "`/playing` — Aktueller Song mit Steuerung\n" +
-                        "`/seek <Zeit>` — Im Song springen (z.B. 1:30)\n" +
-                        "`/skipto <Position>` — Zu Song in Queue springen\n" +
-                        "`/move <von> <nach>` — Song verschieben\n" +
-                        "`/repeat <off/track/queue>` — Repeat-Modus\n" +
-                        "`/shuffle` — Queue mischen\n" +
-                        "`/remove <Position>` — Song aus Queue entfernen\n" +
-                        "`/clear` — Queue leeren\n" +
-                        "`/save` — Song per DM speichern", false)
-                .addField("\uD83D\uDD0A Voice & Audio",
-                        "`/join` — Voice-Channel beitreten\n" +
-                        "`/leave` — Voice-Channel verlassen\n" +
-                        "`/filter <preset>` — Audio-Filter (Bassboost, etc.)\n" +
-                        "`/nonstop` — Nonstop-Modus: random Tekk/Techno/Uptempo", false)
-                .addField("\u2139\uFE0F Sonstiges",
-                        "`/invite` — Bot einladen\n" +
-                        "`/info` — Bot-Infos\n" +
-                        "`/uptime` — Online-Zeit\n" +
-                        "`/help` — Diese Hilfe", false)
-                .setFooter("Quellen: YouTube, SoundCloud, Spotify, Radio  |  Playlists werden unterstuetzt!");
+                .addField(Lang.t(gid, "help.music.title"), Lang.t(gid, "help.music.body"), false)
+                .addField(Lang.t(gid, "help.queue.title"), Lang.t(gid, "help.queue.body"), false)
+                .addField(Lang.t(gid, "help.voice.title"), Lang.t(gid, "help.voice.body"), false)
+                .addField(Lang.t(gid, "help.other.title"), Lang.t(gid, "help.other.body"), false)
+                .setFooter(Lang.t(gid, "help.footer"));
         event.replyEmbeds(embed.build()).queue();
     }
 
     private void handleInvite(SlashCommandInteractionEvent event) {
+        long gid = event.getGuild().getIdLong();
         String botId = event.getJDA().getSelfUser().getId();
         String url = "https://discord.com/oauth2/authorize?client_id=" + botId + "&permissions=3145728&scope=bot%20applications.commands";
         EmbedBuilder embed = new EmbedBuilder()
-                .setTitle("\uD83D\uDD17 Bot einladen")
-                .setDescription("Klicke den Link um den Bot auf deinen Server einzuladen:\n\n" +
-                        "**[Hier klicken](" + url + ")**")
+                .setTitle(Lang.t(gid, "invite.title"))
+                .setDescription(Lang.t(gid, "invite.desc", url))
                 .setColor(0x57F287);
         event.replyEmbeds(embed.build()).queue();
     }
 
     private void handleInfo(SlashCommandInteractionEvent event) {
+        long gid = event.getGuild().getIdLong();
         String owner = MusicBot.CONFIG.getProperty("bot.owner", "Unbekannt");
         String support = MusicBot.CONFIG.getProperty("bot.support", "Keine Angabe");
 
@@ -1317,24 +1342,25 @@ public class CommandHandler extends ListenerAdapter {
                 .setTitle("\uD83E\uDD16 " + event.getJDA().getSelfUser().getName())
                 .setThumbnail(event.getJDA().getSelfUser().getEffectiveAvatarUrl())
                 .setColor(0x5865F2)
-                .addField("\uD83D\uDC51 Besitzer", owner, true)
-                .addField("\uD83C\uDF10 Server", String.valueOf(event.getJDA().getGuilds().size()), true)
-                .addField("\uD83D\uDC65 Mitglieder", String.valueOf(totalMembers), true)
-                .addField("\u23F0 Uptime", uptimeStr, true)
-                .addField("\uD83C\uDFB5 Aktive Player", activePlayers + " / " + event.getJDA().getGuilds().size(), true)
+                .addField(Lang.t(gid, "info.owner"), owner, true)
+                .addField(Lang.t(gid, "info.servers"), String.valueOf(event.getJDA().getGuilds().size()), true)
+                .addField(Lang.t(gid, "info.members"), String.valueOf(totalMembers), true)
+                .addField(Lang.t(gid, "info.uptime"), uptimeStr, true)
+                .addField(Lang.t(gid, "info.active.players"), activePlayers + " / " + event.getJDA().getGuilds().size(), true)
                 .addField("\u200B", "\u200B", true)
-                .addField("\uD83D\uDCE9 Support", support, false)
-                .addField("\uD83D\uDD17 Discord", "[Server beitreten](https://discord.gg/KqngYCVJqZ)", false)
-                .setFooter("Made with \u2764\uFE0F using JDA + LavaPlayer");
+                .addField(Lang.t(gid, "info.support"), support, false)
+                .addField(Lang.t(gid, "info.discord"), Lang.t(gid, "info.discord.value"), false)
+                .setFooter(Lang.t(gid, "info.footer"));
         event.replyEmbeds(embed.build()).queue();
     }
 
     private void handlePing(SlashCommandInteractionEvent event) {
+        long gid = event.getGuild().getIdLong();
         long gatewayPing = event.getJDA().getGatewayPing();
         EmbedBuilder embed = new EmbedBuilder()
-                .setTitle("\uD83C\uDFD3 Pong!")
+                .setTitle(Lang.t(gid, "ping.title"))
                 .setColor(0x5865F2)
-                .addField("\uD83D\uDCE1 Gateway", gatewayPing + "ms", true);
+                .addField(Lang.t(gid, "ping.gateway"), gatewayPing + "ms", true);
         event.replyEmbeds(embed.build()).queue();
     }
 
@@ -1346,7 +1372,7 @@ public class CommandHandler extends ListenerAdapter {
         if (old != null) old.cancel(false);
 
         final long expireAt = System.currentTimeMillis() + 5 * 60 * 1000;
-        event.replyEmbeds(buildUptimeEmbed().build()).queue(hook -> {
+        event.replyEmbeds(buildUptimeEmbed(guildId).build()).queue(hook -> {
             ScheduledFuture<?> task = npScheduler.scheduleAtFixedRate(() -> {
                 try {
                     if (System.currentTimeMillis() > expireAt) {
@@ -1354,7 +1380,7 @@ public class CommandHandler extends ListenerAdapter {
                         if (t != null) t.cancel(false);
                         return;
                     }
-                    event.getHook().editOriginalEmbeds(buildUptimeEmbed().build()).queue(null, err -> {
+                    event.getHook().editOriginalEmbeds(buildUptimeEmbed(guildId).build()).queue(null, err -> {
                         ScheduledFuture<?> t = uptimeTasks.remove(guildId);
                         if (t != null) t.cancel(false);
                     });
@@ -1364,7 +1390,7 @@ public class CommandHandler extends ListenerAdapter {
         });
     }
 
-    private EmbedBuilder buildUptimeEmbed() {
+    private EmbedBuilder buildUptimeEmbed(long gid) {
         Duration uptime = Duration.between(MusicBot.START_TIME, Instant.now());
 
         Runtime rt = Runtime.getRuntime();
@@ -1391,14 +1417,14 @@ public class CommandHandler extends ListenerAdapter {
                 : "N/A";
 
         return new EmbedBuilder()
-                .setTitle("\u23F0 Uptime & System")
+                .setTitle(Lang.t(gid, "uptime.title"))
                 .setColor(0x57F287)
-                .addField("\u23F1\uFE0F Online seit", "**" + formatUptime(uptime) + "**", false)
-                .addField("\uD83D\uDCBB CPU", cpuStr, true)
-                .addField("\uD83E\uDDE9 Threads", String.valueOf(Thread.activeCount()), true)
+                .addField(Lang.t(gid, "uptime.online"), "**" + formatUptime(uptime) + "**", false)
+                .addField(Lang.t(gid, "uptime.cpu"), cpuStr, true)
+                .addField(Lang.t(gid, "uptime.threads"), String.valueOf(Thread.activeCount()), true)
                 .addField("\u200B", "\u200B", true)
-                .addField("\uD83D\uDCBE Bot RAM", usedMb + " / " + maxMb + " MB (" + ramPercent + "%)", true)
-                .addField("\uD83D\uDDA5\uFE0F System RAM", sysRamStr, true);
+                .addField(Lang.t(gid, "uptime.bot.ram"), usedMb + " / " + maxMb + " MB (" + ramPercent + "%)", true)
+                .addField(Lang.t(gid, "uptime.sys.ram"), sysRamStr, true);
     }
 
     private String formatUptime(Duration uptime) {
