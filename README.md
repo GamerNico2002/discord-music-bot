@@ -33,6 +33,7 @@
 - 🎚️ Audio-Filter & Equalizer-Presets
 - 🎲 **Nonstop-Modus** – endlos neue Tracks per Auto-Queue
 - 💬 Alle Slash-Commands (`/play`, `/queue`, `/np`, …)
+- 🌍 **Mehrsprachig** – Deutsch, English, Français, Español, Italiano (pro Server einstellbar via `/language`)
 - 🔐 DAVE-E2EE Voice-Support (Discord-Anforderung)
 
 ---
@@ -60,9 +61,26 @@
 | `/save` | Aktuellen Song per DM schicken |
 | `/nonstop [auto-on\|auto-off]` | Nonstop-Modus mit Auto-Queue |
 | `/filter <preset>` | Audio-Filter / Equalizer |
+| `/language [code]` | Bot-Sprache pro Server wählen (`de`, `en`, `fr`, `es`, `it`) |
 | `/invite` | Einladungslink |
 | `/help`, `/info`, `/uptime`, `/ping` | Bot-Infos |
 | `/dcleave <server>` | Server verlassen (nur Owner) |
+
+### 🌍 Sprachen
+
+Der Bot unterstützt mehrere Sprachen für alle User-Antworten (Embeds, Hilfe, Fehlermeldungen).
+Die Auswahl wird **pro Discord-Server** in `languages.properties` neben der JAR gespeichert und überlebt Neustarts.
+
+| Code | Sprache |
+|------|---------|
+| `de` | 🇩🇪 Deutsch (Standard) |
+| `en` | 🇬🇧 English |
+| `fr` | 🇫🇷 Français |
+| `es` | 🇪🇸 Español |
+| `it` | 🇮🇹 Italiano |
+
+Beispiel: `/language code:en` setzt die Bot-Antworten auf Englisch.
+`/language` ohne Argument zeigt die aktuell gesetzte Sprache.
 
 ---
 
