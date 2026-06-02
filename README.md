@@ -2,11 +2,12 @@
   <img src="assets/logo.png" alt="Discord Music Bot Logo" width="200"/>
 </p>
 
-<h1 align="center">Discord Music Bot 🎵</h1>
+<h1 align="center">🎵 Discord Music Bot</h1>
 
 <p align="center">
-  Ein Discord Music Bot in Java mit Unterstützung für <b>YouTube</b>, <b>SoundCloud</b>, <b>Spotify</b> und Internet-Radio.<br/>
-  Slash-Commands, Queue, Filter/Equalizer, Nonstop-Modus und mehr.
+  A feature-rich Discord music bot written in Java.<br/>
+  Supports <b>YouTube</b>, <b>SoundCloud</b>, <b>Spotify</b> &amp; Internet Radio.<br/>
+  Slash commands, queue management, audio filters, nonstop mode, and more.
 </p>
 
 <p align="center">
@@ -15,134 +16,120 @@
   <a href="../../releases/latest"><img src="https://img.shields.io/github/v/release/GamerNico2002/discord-music-bot?color=5865F2" alt="Latest Release"/></a>
   <img src="https://img.shields.io/badge/Java-25-orange?logo=openjdk" alt="Java 25"/>
   <a href="https://discord.gg/9vMARH8hnV"><img src="https://img.shields.io/discord/0?label=Discord&logo=discord&logoColor=white&color=5865F2" alt="Discord"/></a>
+  <img src="https://img.shields.io/github/stars/GamerNico2002/discord-music-bot?style=social" alt="Stars"/>
 </p>
 
 <p align="center">
-  <a href="https://discord.gg/9vMARH8hnV">
-    <img src="https://invidget.switchblade.xyz/9vMARH8hnV" alt="Discord Support Server"/>
-  </a>
+  <a href="#-features">Features</a> •
+  <a href="#-commands">Commands</a> •
+  <a href="#-installation">Installation</a> •
+  <a href="#-configuration">Configuration</a> •
+  <a href="#-support">Support</a>
+</p>
+
+---
+
+<p align="center">
+  <img src="assets/screenshot.svg" alt="Bot Screenshot" width="520"/>
+  <br/>
+  <em>Now Playing embed with progress bar, volume, repeat mode &amp; media controls (<code>/playing</code>)</em>
 </p>
 
 ---
 
 ## ✨ Features
 
-- 🎶 YouTube, SoundCloud & Spotify (Tracks, Alben, Playlists)
-- 📻 Vorkonfigurierte Internet-Radio-Sender
-- 🔁 Repeat (off / track / queue), Shuffle, Seek, Move, Remove
-- 🎚️ Audio-Filter & Equalizer-Presets
-- 🎲 **Nonstop-Modus** – endlos neue Tracks per Auto-Queue
-- 💬 Alle Slash-Commands (`/play`, `/queue`, `/np`, …)
-- 🌍 **Mehrsprachig** – Deutsch, English, Français, Español, Italiano (pro Server einstellbar via `/language`)
-- 🔐 DAVE-E2EE Voice-Support (Discord-Anforderung)
+| Category | Details |
+|----------|---------|
+| 🎶 **Multi-Source** | YouTube, SoundCloud, Spotify (tracks, albums, playlists) & 20+ Internet radio stations |
+| 📋 **Queue Management** | Add, remove, move, skip-to, shuffle, clear, repeat (off/track/queue) |
+| 🎚️ **Audio Filters** | Bass boost, treble, pop, rock – built-in equalizer presets |
+| 🔁 **Nonstop Mode** | Auto-queue with configurable genres – endless Tekk, Techno, Uptempo & more |
+| 🌍 **i18n** | Deutsch, English, Français, Español, Italiano – per-server language via `/language` |
+| 🎮 **Full Slash Commands** | All features accessible via Discord's native slash command system |
+| 🔐 **DAVE E2EE** | Full Discord DAVE protocol support (required since March 2026) |
+| 🖥️ **Cross-Platform** | Windows (`start.bat`), Linux (`start.sh`), macOS, systemd service |
 
 ---
 
-## 🎮 Befehle
+## 🎮 Commands
 
-| Befehl | Beschreibung |
-|--------|-------------|
-| `/play <url/suche>` | Song abspielen (YouTube / SoundCloud / Spotify / Suchbegriff) |
-| `/skip` | Aktuellen Song überspringen |
-| `/stop` | Musik stoppen + Queue leeren |
-| `/pause` / `/resume` | Pausieren / fortsetzen |
-| `/queue` | Aktuelle Warteschlange |
-| `/playing` | Aktuell laufender Song |
-| `/volume <0-100>` | Lautstärke setzen |
-| `/join` / `/leave` | Voice-Channel betreten / verlassen |
-| `/repeat <off\|track\|queue>` | Repeat-Modus |
-| `/shuffle` | Queue mischen |
-| `/radio <sender>` | Internet-Radio abspielen |
-| `/seek <zeit>` | Im Song springen (z. B. `1:30`) |
-| `/remove <pos>` | Song aus der Queue entfernen |
-| `/clear` | Queue leeren (aktueller Song läuft weiter) |
-| `/move <von> <nach>` | Song in der Queue verschieben |
-| `/skipto <pos>` | Direkt zu einer Position springen |
-| `/save` | Aktuellen Song per DM schicken |
-| `/nonstop [auto-on\|auto-off]` | Nonstop-Modus mit Auto-Queue |
-| `/filter <preset>` | Audio-Filter / Equalizer |
-| `/language [code]` | Bot-Sprache pro Server wählen (`de`, `en`, `fr`, `es`, `it`) |
-| `/invite` | Einladungslink |
-| `/help`, `/info`, `/uptime`, `/ping` | Bot-Infos |
-| `/dcleave <server>` | Server verlassen (nur Owner) |
-
-### 🌍 Sprachen
-
-Der Bot unterstützt mehrere Sprachen für alle User-Antworten (Embeds, Hilfe, Fehlermeldungen).
-Die Auswahl wird **pro Discord-Server** in `languages.properties` neben der JAR gespeichert und überlebt Neustarts.
-
-| Code | Sprache |
-|------|---------|
-| `de` | 🇩🇪 Deutsch (Standard) |
-| `en` | 🇬🇧 English |
-| `fr` | 🇫🇷 Français |
-| `es` | 🇪🇸 Español |
-| `it` | 🇮🇹 Italiano |
-
-Beispiel: `/language code:en` setzt die Bot-Antworten auf Englisch.
-`/language` ohne Argument zeigt die aktuell gesetzte Sprache.
+| Command | Description |
+|---------|-------------|
+| `/play <url/search>` | Play a track (YouTube / SoundCloud / Spotify / text search) |
+| `/skip` | Skip the current track |
+| `/stop` | Stop music & clear the queue |
+| `/pause` / `/resume` | Pause / resume playback |
+| `/queue` | Show the queue with pagination |
+| `/playing` | Now-playing view with progress bar & media controls |
+| `/volume <0-100>` | Set volume |
+| `/join` / `/leave` | Join / leave voice channel |
+| `/repeat <off\|track\|queue>` | Set repeat mode |
+| `/shuffle` | Shuffle the queue |
+| `/radio <station>` | Play an internet radio station |
+| `/seek <time>` | Seek within the current track (e.g. `1:30`) |
+| `/remove <pos>` | Remove a track from the queue |
+| `/clear` | Clear the queue (current track continues) |
+| `/move <from> <to>` | Move a track in the queue |
+| `/skipto <pos>` | Jump to a specific position in the queue |
+| `/save` | Save the current track via DM |
+| `/nonstop [auto-on\|auto-off]` | Toggle nonstop auto-queue mode |
+| `/filter <preset>` | Apply audio filter / equalizer preset |
+| `/language [code]` | Change bot language per server (`de`, `en`, `fr`, `es`, `it`) |
+| `/invite` | Get bot invite link |
+| `/help` / `/info` / `/uptime` / `/ping` | Bot information & status |
+| `/dcleave <server>` | Force-leave a server (bot owner only) |
 
 ---
 
 ## 🚀 Installation
 
-### Voraussetzungen
-- **Java 25+** (z. B. [Temurin](https://adoptium.net/) oder [OpenJDK](https://jdk.java.net/25/))
-- **Linux:** `opus`, `libsodium`, `ffmpeg` (übernimmt `install.sh`)
-- **Windows:** nur Java – Opus/Sodium sind als native Libs bereits in der JAR enthalten
+### Prerequisites
+- **Java 25+** ([Temurin](https://adoptium.net/) or [OpenJDK](https://jdk.java.net/25/))
+- **Linux:** `opus`, `libsodium`, `ffmpeg` (handled by `install.sh`)
+- **Windows:** Java only – Opus/Sodium natives are bundled in the JAR
 
 ---
 
 ### 🪟 Windows
 
-#### 1. Java 25 installieren
-- Empfohlen: [Adoptium Temurin 25](https://adoptium.net/temurin/releases/?version=25) (MSI-Installer, setzt `JAVA_HOME` automatisch)
-- Alternativ via [winget](https://learn.microsoft.com/de-de/windows/package-manager/winget/):
-  ```powershell
-  winget install EclipseAdoptium.Temurin.25.JDK
-  ```
-- Test:
-  ```powershell
-  java -version
-  ```
+#### 1. Install Java 25
+```powershell
+winget install EclipseAdoptium.Temurin.25.JDK
+java -version  # verify
+```
 
-#### 2a. Fertige JAR vom Release nehmen (einfachste Variante)
-1. JAR aus dem [aktuellen Release](../../releases/latest) herunterladen
-2. `config.properties.example` aus dem Repo herunterladen → in `config.properties` umbenennen → Token eintragen
-3. Beide Dateien in den **selben Ordner** legen und Doppelklick auf `start.bat` – oder:
+#### 2a. Download prebuilt JAR (easiest)
+1. Download the `.jar` from the [latest release](../../releases/latest)
+2. Download `config.properties.example` → rename to `config.properties` → fill in your bot token
+3. Place both files in the **same folder** and double-click `start.bat` – or run:
    ```powershell
-   java --enable-native-access=ALL-UNNAMED -Xmx2G -jar discord-music-bot-2.1-all.jar
+   java --enable-native-access=ALL-UNNAMED -Xmx2G -jar discord-music-bot-2.2-all.jar
    ```
 
-#### 2b. Selbst bauen
+#### 2b. Build from source
 ```powershell
 git clone https://github.com/GamerNico2002/discord-music-bot.git
 cd discord-music-bot
 copy config.properties.example config.properties
-notepad config.properties   # bot.token eintragen
-
+notepad config.properties   # set bot.token
 .\gradlew.bat shadowJar
-```
-Die fertige JAR liegt anschließend in `build\libs\discord-music-bot-2.1-all.jar`. Starten:
-```powershell
 .\start.bat
 ```
-
-> 💡 **Hinweis:** Optionale System-FFmpeg-Installation ist **nicht nötig** – Lavaplayer & Lavalink-YouTube-Source erledigen das intern.
 
 ---
 
 ### 🐧 Linux
 
-#### Option A – Fertige JAR vom Release
+#### Option A – Download prebuilt JAR
 ```bash
-wget https://github.com/GamerNico2002/discord-music-bot/releases/latest/download/discord-music-bot-2.1-all.jar
+wget https://github.com/GamerNico2002/discord-music-bot/releases/latest/download/discord-music-bot-2.2-all.jar
 wget https://raw.githubusercontent.com/GamerNico2002/discord-music-bot/main/config.properties.example -O config.properties
-nano config.properties       # bot.token eintragen
-java --enable-native-access=ALL-UNNAMED -Xmx2G -jar discord-music-bot-2.1-all.jar
+nano config.properties
+java --enable-native-access=ALL-UNNAMED -Xmx2G -jar discord-music-bot-2.2-all.jar
 ```
 
-#### Option B – Selbst bauen
+#### Option B – Build from source
 ```bash
 git clone https://github.com/GamerNico2002/discord-music-bot.git
 cd discord-music-bot
@@ -152,9 +139,9 @@ nano config.properties
 ./start.sh
 ```
 
-#### Option C – One-Click-Setup (Debian/Ubuntu/Fedora/Arch)
+#### Option C – One-click setup (Debian/Ubuntu/Fedora/Arch)
 ```bash
-sudo ./install.sh   # installiert Java 25 + opus/libsodium/ffmpeg
+sudo ./install.sh   # installs Java 25 + opus/libsodium/ffmpeg
 cp config.properties.example config.properties
 nano config.properties
 ./start.sh
@@ -176,39 +163,36 @@ nano config.properties
 
 ---
 
-## ⚙️ Konfiguration
+### 🤖 Creating a Discord Application
 
-Alle Einstellungen in [`config.properties`](config.properties.example):
-
-| Schlüssel | Pflicht | Beschreibung |
-|-----------|---------|--------------|
-| `bot.token` | ✅ | Discord Bot Token |
-| `bot.volume` | ❌ | Standard-Lautstärke (0–100) |
-| `bot.status` | ❌ | Status-Text im Discord-Profil |
-| `bot.owner` | ❌ | Owner-Name (für `/info`) |
-| `bot.owner.id` | ❌ | Owner Discord-ID (für `/dcleave`) |
-| `bot.support` | ❌ | Support-Hinweis in `/info` |
-| `spotify.client.id` / `spotify.client.secret` | ❌ | Für Spotify-Links |
-| `nonstop.genres`, `nonstop.modifiers` | ❌ | Anpassung des Nonstop-Modus |
-
----
-
-## 🤖 Discord Bot erstellen
-
-1. https://discord.com/developers/applications öffnen → **New Application**
-2. Tab **Bot** → **Reset Token** → kopieren und in `config.properties` eintragen
-3. **Privileged Intents** aktivieren: *Message Content*, *Server Members*
+1. Go to https://discord.com/developers/applications → **New Application**
+2. Tab **Bot** → **Reset Token** → copy and paste into `config.properties`
+3. Enable **Privileged Intents**: *Message Content*, *Server Members*
 4. **OAuth2 → URL Generator**
    - Scopes: `bot`, `applications.commands`
    - Permissions: *Send Messages*, *Connect*, *Speak*, *Read Message History*
-5. Generierten Link öffnen → Bot auf deinen Server einladen
+5. Open the generated URL → invite the bot to your server
 
 ---
 
-## 🛠️ Als Systemd-Service (Linux)
+## ⚙️ Configuration
+
+All settings in [`config.properties`](config.properties.example):
+
+| Key | Required | Description |
+|-----|----------|-------------|
+| `bot.token` | ✅ | Discord bot token |
+| `bot.owner` | ❌ | Owner display name (for `/info`) |
+| `bot.owner.id` | ❌ | Owner Discord ID (for `/dcleave`) |
+| `bot.support` | ❌ | Support text in `/info` |
+| `spotify.client.id` / `spotify.client.secret` | ❌ | For Spotify track/playlist/album resolution |
+| `nonstop.genres` / `nonstop.modifiers` | ❌ | Customize nonstop mode genres & search modifiers |
+
+---
+
+## 🛠️ systemd Service (Linux)
 
 `/etc/systemd/system/musicbot.service`:
-
 ```ini
 [Unit]
 Description=Discord Music Bot
@@ -218,7 +202,7 @@ After=network.target
 Type=simple
 User=musicbot
 WorkingDirectory=/opt/discord-music-bot
-ExecStart=/opt/jdk-25/bin/java --enable-native-access=ALL-UNNAMED -Xmx2G -jar discord-music-bot-2.1-all.jar
+ExecStart=/opt/jdk-25/bin/java --enable-native-access=ALL-UNNAMED -Xmx2G -jar discord-music-bot-2.2-all.jar
 Restart=always
 RestartSec=10
 
@@ -234,23 +218,55 @@ journalctl -u musicbot -f
 
 ---
 
-## 💬 Support & Community
+## 📋 Bot Lists
 
-Brauchst du Hilfe, willst Bugs melden oder einfach quatschen?  
-Komm in unseren **Discord-Support-Server**:
+Want to help others discover this bot? Add it to a Discord bot list:
+
+- [**top.gg**](https://top.gg/) – largest Discord bot listing site
+- [**discordbotlist.com**](https://discordbotlist.com/)
+- [**discord.bots.gg**](https://discord.bots.gg/)
+- [**discordlist.space**](https://discordlist.space/)
+- [**discord.me**](https://discord.me/)
+
+> 💡 Listing on these sites dramatically increases visibility and user adoption.
+
+---
+
+## 🌍 Languages (i18n)
+
+The bot supports multiple languages for all user-facing messages.  
+Language is stored **per Discord server** in `languages.properties` (persists across restarts).
+
+| Code | Language |
+|------|----------|
+| `de` | 🇩🇪 Deutsch (default) |
+| `en` | 🇬🇧 English |
+| `fr` | 🇫🇷 Français |
+| `es` | 🇪🇸 Español |
+| `it` | 🇮🇹 Italiano |
+
+`/language code:en` sets responses to English. `/language` without arguments shows the current language.
+
+---
+
+## 💬 Support
 
 <p align="center">
   <a href="https://discord.gg/9vMARH8hnV">
-    <img src="https://img.shields.io/badge/Discord-Support%20Server%20beitreten-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord beitreten"/>
+    <img src="https://invidget.switchblade.xyz/9vMARH8hnV" alt="Discord Support Server"/>
   </a>
 </p>
 
-👉 **Invite:** https://discord.gg/9vMARH8hnV
+Questions? Bugs? Ideas? Join the [Discord Support Server](https://discord.gg/9vMARH8hnV).
 
-## 🤝 Mitwirken
+---
 
-Pull Requests sind willkommen! Für größere Änderungen bitte erst ein Issue eröffnen – oder sprich uns direkt im [Discord](https://discord.gg/9vMARH8hnV) an.
+## 🤝 Contributing
 
-## 📄 Lizenz
+Pull requests are welcome! For major changes, please open an issue first or reach out on [Discord](https://discord.gg/9vMARH8hnV).
+
+---
+
+## 📄 License
 
 [MIT](LICENSE) © GamerNico2002
