@@ -27,6 +27,7 @@ public class MusicBot extends ListenerAdapter {
 
     public static final Properties CONFIG = new Properties();
     public static final Instant START_TIME = Instant.now();
+    public static JDA JDA;
 
     private static final List<CommandData> COMMANDS = List.of(
             Commands.slash("play", "Spielt einen Song von YouTube, SoundCloud oder Spotify")
@@ -66,7 +67,6 @@ public class MusicBot extends ListenerAdapter {
             Commands.slash("invite", "Einladungslink fuer den Bot"),
             Commands.slash("help", "Erhalte Hilfe"),
             Commands.slash("info", "Infos ueber den Bot"),
-            Commands.slash("uptime", "Zeigt wie lange der Bot schon online ist"),
             Commands.slash("ping", "Zeigt die Latenz des Bots"),
             Commands.slash("dcleave", "Bot verlaesst einen ausgewaehlten Discord-Server (nur Bot-Owner)")
                     .addOption(OptionType.STRING, "server", "Discord-Server auswaehlen", true, true),
@@ -105,7 +105,7 @@ public class MusicBot extends ListenerAdapter {
             System.exit(1);
         }
 
-        JDA jda = JDABuilder.createDefault(token)
+        JDA = JDABuilder.createDefault(token)
                 .enableIntents(
                         GatewayIntent.GUILD_VOICE_STATES,
                         GatewayIntent.GUILD_MESSAGES
@@ -118,14 +118,13 @@ public class MusicBot extends ListenerAdapter {
                 .addEventListeners(new CommandHandler(), new MusicBot())
                 .build();
 
-        jda.awaitReady();
+        JDA.awaitReady();
         System.out.println("Bot ist verbunden! Registriere Slash-Commands...");
 
-        for (Guild guild : jda.getGuilds()) {
+        for (Guild guild : JDA.getGuilds()) {
             registerForGuild(guild);
         }
 
-        // Dynamischer Status: wechselt alle 15 Sekunden (immer Streaming-Modus)
         var scheduler = Executors.newSingleThreadScheduledExecutor();
         final int commandCount = COMMANDS.size();
         final String[] statusMessages = {
@@ -136,7 +135,7 @@ public class MusicBot extends ListenerAdapter {
         final int[] index = {0};
         scheduler.scheduleAtFixedRate(() -> {
             try {
-                var guilds = jda.getGuilds();
+                var guilds = JDA.getGuilds();
                 int servers = guilds.size();
                 int members = guilds.stream()
                         .mapToInt(Guild::getMemberCount)
@@ -144,7 +143,7 @@ public class MusicBot extends ListenerAdapter {
                 String msg = statusMessages[index[0] % statusMessages.length]
                         .replace("{members}", String.valueOf(members))
                         .replace("{servers}", String.valueOf(servers));
-                jda.getPresence().setActivity(
+                JDA.getPresence().setActivity(
                         Activity.streaming(msg, "https://www.twitch.tv/placeholder"));
                 index[0]++;
             } catch (Exception e) {

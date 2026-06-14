@@ -75,7 +75,7 @@ public class CommandHandler extends ListenerAdapter {
     private final java.util.Set<Long> autoNonstopDisabledGuilds = java.util.concurrent.ConcurrentHashMap.newKeySet();
     private static final long AUTO_NONSTOP_DELAY_MS = 2 * 60 * 1000L;
     private final Map<Long, ScheduledFuture<?>> autoNonstopTimers = new java.util.concurrent.ConcurrentHashMap<>();
-    private volatile net.dv8tion.jda.api.JDA jda;
+
     private static final String[] DEFAULT_NONSTOP_GENRES = {
             "tekk", "hardtekk", "techno", "uptempo", "uptempo hardcore",
             "frenchcore", "hardstyle", "raw hardstyle", "rawstyle",
@@ -93,7 +93,7 @@ public class CommandHandler extends ListenerAdapter {
     private final String[] NONSTOP_MODIFIERS;
     private final java.util.Random nonstopRandom = new java.util.Random();
     private final Map<Long, Long> lastChannelIds = new HashMap<>();
-    private final ScheduledExecutorService npScheduler = Executors.newScheduledThreadPool(4);
+    private final ScheduledExecutorService npScheduler = Executors.newScheduledThreadPool(32);
     private final Map<Long, ScheduledFuture<?>> npUpdateTasks = new HashMap<>();
     private final Map<Long, net.dv8tion.jda.api.interactions.InteractionHook> npHooks = new HashMap<>();
 
@@ -107,7 +107,7 @@ public class CommandHandler extends ListenerAdapter {
         supportContact = cfg.getProperty("bot.support", "Keine Angabe");
         playerManager.getConfiguration().setOpusEncodingQuality(5);
         playerManager.getConfiguration().setResamplingQuality(com.sedmelluq.discord.lavaplayer.player.AudioConfiguration.ResamplingQuality.MEDIUM);
-        playerManager.setFrameBufferDuration(1000);
+        playerManager.setFrameBufferDuration(300);
         playerManager.registerSourceManager(new YoutubeAudioSourceManager());
         playerManager.registerSourceManager(SoundCloudAudioSourceManager.createDefault());
         AudioSourceManagers.registerRemoteSources(playerManager, com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager.class);
@@ -130,7 +130,6 @@ public class CommandHandler extends ListenerAdapter {
     }
 
     private GuildMusicManager getGuildMusic(Guild guild) {
-        if (jda == null) jda = guild.getJDA();
         return musicManagers.computeIfAbsent(guild.getIdLong(), id -> {
             var manager = new GuildMusicManager(playerManager);
             manager.scheduler.setJda(guild.getJDA());
@@ -153,8 +152,6 @@ public class CommandHandler extends ListenerAdapter {
         ScheduledFuture<?> nps = npUpdateTasks.remove(guildId);
         if (nps != null) nps.cancel(false);
         npHooks.remove(guildId);
-        ScheduledFuture<?> up = uptimeTasks.remove(guildId);
-        if (up != null) up.cancel(false);
     }
 
     @Override
@@ -228,7 +225,6 @@ public class CommandHandler extends ListenerAdapter {
             case "invite" -> handleInvite(event);
             case "help" -> handleHelp(event);
             case "info" -> handleInfo(event);
-            case "uptime" -> handleUptime(event);
             case "ping" -> handlePing(event);
             case "dcleave" -> handleDcLeave(event);
             case "language" -> handleLanguage(event);
@@ -379,77 +375,75 @@ public class CommandHandler extends ListenerAdapter {
             event.getHook().sendMessage(Lang.t(gid, "spotify.not.configured")).queue();
             return;
         }
-        npScheduler.execute(() -> {
-            try {
-                List<String> searches = spotify.resolve(url);
-                if (searches.isEmpty()) {
-                    event.getHook().sendMessage(Lang.t(gid, "spotify.no.songs")).queue();
-                    return;
-                }
-                if (searches.size() == 1) {
-                    playerManager.loadItemOrdered(musicManager, searches.get(0), new AudioLoadResultHandler() {
-                        @Override public void trackLoaded(AudioTrack track) {
+        spotify.resolveAsync(url).thenAcceptAsync(searches -> {
+            if (searches.isEmpty()) {
+                event.getHook().sendMessage(Lang.t(gid, "spotify.no.songs")).queue();
+                return;
+            }
+            if (searches.size() == 1) {
+                playerManager.loadItemOrdered(musicManager, searches.get(0), new AudioLoadResultHandler() {
+                    @Override public void trackLoaded(AudioTrack track) {
+                        connectAndPlay(guild, channel, musicManager, track);
+                        event.getHook().sendMessageEmbeds(new EmbedBuilder()
+                                .setDescription(Lang.t(gid, "spotify.added", track.getInfo().title))
+                                .setColor(0x1DB954).build()).queue();
+                    }
+                    @Override public void playlistLoaded(AudioPlaylist playlist) {
+                        if (!playlist.getTracks().isEmpty()) {
+                            AudioTrack track = playlist.getTracks().get(0);
                             connectAndPlay(guild, channel, musicManager, track);
                             event.getHook().sendMessageEmbeds(new EmbedBuilder()
                                     .setDescription(Lang.t(gid, "spotify.added", track.getInfo().title))
                                     .setColor(0x1DB954).build()).queue();
                         }
+                    }
+                    @Override public void noMatches() { event.getHook().sendMessage(Lang.t(gid, "spotify.not.on.youtube")).queue(); }
+                    @Override public void loadFailed(FriendlyException e) { event.getHook().sendMessage(Lang.t(gid, "error.generic", e.getMessage())).queue(); }
+                });
+            } else {
+                final int[] loaded = {0};
+                final int[] failed = {0};
+                final int total = searches.size();
+                event.getHook().sendMessageEmbeds(new EmbedBuilder()
+                        .setDescription(Lang.t(gid, "spotify.loading", total))
+                        .setColor(0x1DB954).build()).queue();
+                for (String search : searches) {
+                    playerManager.loadItemOrdered(musicManager, search, new AudioLoadResultHandler() {
+                        @Override public void trackLoaded(AudioTrack track) {
+                            connectAndPlay(guild, channel, musicManager, track);
+                            loaded[0]++;
+                            checkDone();
+                        }
                         @Override public void playlistLoaded(AudioPlaylist playlist) {
                             if (!playlist.getTracks().isEmpty()) {
-                                AudioTrack track = playlist.getTracks().get(0);
-                                connectAndPlay(guild, channel, musicManager, track);
+                                connectAndPlay(guild, channel, musicManager, playlist.getTracks().get(0));
+                                loaded[0]++;
+                            }
+                            checkDone();
+                        }
+                        @Override public void noMatches() {
+                            failed[0]++;
+                            checkDone();
+                        }
+                        @Override public void loadFailed(FriendlyException e) {
+                            System.err.println("[Spotify] Load failed: " + search + " - " + e.getMessage());
+                            failed[0]++;
+                            checkDone();
+                        }
+                        private void checkDone() {
+                            if (loaded[0] + failed[0] >= total) {
+                                String msg = Lang.t(gid, "spotify.loaded", loaded[0], total);
+                                if (failed[0] > 0) msg += Lang.t(gid, "spotify.failed.count", failed[0]);
                                 event.getHook().sendMessageEmbeds(new EmbedBuilder()
-                                        .setDescription(Lang.t(gid, "spotify.added", track.getInfo().title))
-                                        .setColor(0x1DB954).build()).queue();
+                                        .setDescription(msg).setColor(0x1DB954).build()).queue();
                             }
                         }
-                        @Override public void noMatches() { event.getHook().sendMessage(Lang.t(gid, "spotify.not.on.youtube")).queue(); }
-                        @Override public void loadFailed(FriendlyException e) { event.getHook().sendMessage(Lang.t(gid, "error.generic", e.getMessage())).queue(); }
                     });
-                } else {
-                    final int[] loaded = {0};
-                    final int[] failed = {0};
-                    final int total = searches.size();
-                    event.getHook().sendMessageEmbeds(new EmbedBuilder()
-                            .setDescription(Lang.t(gid, "spotify.loading", total))
-                            .setColor(0x1DB954).build()).queue();
-                    for (String search : searches) {
-                        playerManager.loadItemOrdered(musicManager, search, new AudioLoadResultHandler() {
-                            @Override public void trackLoaded(AudioTrack track) {
-                                connectAndPlay(guild, channel, musicManager, track);
-                                loaded[0]++;
-                                checkDone();
-                            }
-                            @Override public void playlistLoaded(AudioPlaylist playlist) {
-                                if (!playlist.getTracks().isEmpty()) {
-                                    connectAndPlay(guild, channel, musicManager, playlist.getTracks().get(0));
-                                    loaded[0]++;
-                                }
-                                checkDone();
-                            }
-                            @Override public void noMatches() {
-                                failed[0]++;
-                                checkDone();
-                            }
-                            @Override public void loadFailed(FriendlyException e) {
-                                System.err.println("[Spotify] Load failed: " + search + " - " + e.getMessage());
-                                failed[0]++;
-                                checkDone();
-                            }
-                            private void checkDone() {
-                                if (loaded[0] + failed[0] >= total) {
-                                    String msg = Lang.t(gid, "spotify.loaded", loaded[0], total);
-                                    if (failed[0] > 0) msg += Lang.t(gid, "spotify.failed.count", failed[0]);
-                                    event.getHook().sendMessageEmbeds(new EmbedBuilder()
-                                            .setDescription(msg).setColor(0x1DB954).build()).queue();
-                                }
-                            }
-                        });
-                    }
                 }
-            } catch (Exception e) {
-                event.getHook().sendMessage(Lang.t(gid, "spotify.error", e.getMessage())).queue();
             }
+        }, npScheduler).exceptionally(e -> {
+            event.getHook().sendMessage(Lang.t(gid, "spotify.error", e.getCause().getMessage())).queue();
+            return null;
         });
     }
 
@@ -588,7 +582,7 @@ public class CommandHandler extends ListenerAdapter {
             try {
                 if (musicManager.player.getPlayingTrack() != null) return;
                 if (!musicManager.scheduler.getQueue().isEmpty()) return;
-                Guild guild = jda != null ? jda.getGuildById(guildId) : null;
+                Guild guild = MusicBot.JDA != null ? MusicBot.JDA.getGuildById(guildId) : null;
                 if (guild == null || !guild.getAudioManager().isConnected()) {
                     System.out.println("[AutoNonstop] Guild nicht verbunden -> cleanup");
                     cleanupGuild(guildId);
@@ -1343,61 +1337,6 @@ public class CommandHandler extends ListenerAdapter {
         String selfName = event.getJDA().getSelfUser().getName();
         String selfAvatar = event.getJDA().getSelfUser().getEffectiveAvatarUrl();
 
-        EmbedBuilder embed = new EmbedBuilder()
-                .setTitle("\uD83E\uDD16 " + selfName)
-                .setThumbnail(selfAvatar)
-                .setColor(0x5865F2)
-                .addField(Lang.t(gid, "info.owner"), ownerDisplay, true)
-                .addField(Lang.t(gid, "info.servers"), String.valueOf(guilds.size()), true)
-                .addField(Lang.t(gid, "info.members"), String.valueOf(totalMembers), true)
-                .addField(Lang.t(gid, "info.uptime"), uptimeStr, true)
-                .addField(Lang.t(gid, "info.active.players"), activePlayers + " / " + guilds.size(), true)
-                .addField("\u200B", "\u200B", true)
-                .addField(Lang.t(gid, "info.support"), supportContact, false)
-                .addField(Lang.t(gid, "info.discord"), Lang.t(gid, "info.discord.value"), false)
-                .setFooter(Lang.t(gid, "info.footer"));
-        event.replyEmbeds(embed.build()).queue();
-    }
-
-    private void handlePing(SlashCommandInteractionEvent event) {
-        long gid = event.getGuild().getIdLong();
-        long gatewayPing = event.getJDA().getGatewayPing();
-        EmbedBuilder embed = new EmbedBuilder()
-                .setTitle(Lang.t(gid, "ping.title"))
-                .setColor(0x5865F2)
-                .addField(Lang.t(gid, "ping.gateway"), gatewayPing + "ms", true);
-        event.replyEmbeds(embed.build()).queue();
-    }
-
-    private final Map<Long, ScheduledFuture<?>> uptimeTasks = new HashMap<>();
-
-    private void handleUptime(SlashCommandInteractionEvent event) {
-        long guildId = event.getGuild().getIdLong();
-        ScheduledFuture<?> old = uptimeTasks.remove(guildId);
-        if (old != null) old.cancel(false);
-
-        final long expireAt = System.currentTimeMillis() + 5 * 60 * 1000;
-        event.replyEmbeds(buildUptimeEmbed(guildId).build()).queue(hook -> {
-            ScheduledFuture<?> task = npScheduler.scheduleAtFixedRate(() -> {
-                try {
-                    if (System.currentTimeMillis() > expireAt) {
-                        ScheduledFuture<?> t = uptimeTasks.remove(guildId);
-                        if (t != null) t.cancel(false);
-                        return;
-                    }
-                    event.getHook().editOriginalEmbeds(buildUptimeEmbed(guildId).build()).queue(null, err -> {
-                        ScheduledFuture<?> t = uptimeTasks.remove(guildId);
-                        if (t != null) t.cancel(false);
-                    });
-                } catch (Exception ignored) {}
-            }, 10, 10, TimeUnit.SECONDS);
-            uptimeTasks.put(guildId, task);
-        });
-    }
-
-    private EmbedBuilder buildUptimeEmbed(long gid) {
-        Duration uptime = Duration.between(MusicBot.START_TIME, Instant.now());
-
         Runtime rt = Runtime.getRuntime();
         long usedMb = (rt.totalMemory() - rt.freeMemory()) / (1024 * 1024);
         long maxMb = rt.maxMemory() / (1024 * 1024);
@@ -1421,16 +1360,37 @@ public class CommandHandler extends ListenerAdapter {
                 ? sysUsedMb + " / " + sysTotalMb + " MB (" + sysRamPercent + "%)"
                 : "N/A";
 
-        return new EmbedBuilder()
-                .setTitle(Lang.t(gid, "uptime.title"))
-                .setColor(0x57F287)
-                .addField(Lang.t(gid, "uptime.online"), "**" + formatUptime(uptime) + "**", false)
+        EmbedBuilder embed = new EmbedBuilder()
+                .setTitle("\uD83E\uDD16 " + selfName)
+                .setThumbnail(selfAvatar)
+                .setColor(0x5865F2)
+                .addField(Lang.t(gid, "info.owner"), ownerDisplay, true)
+                .addField(Lang.t(gid, "info.servers"), String.valueOf(guilds.size()), true)
+                .addField(Lang.t(gid, "info.members"), String.valueOf(totalMembers), true)
+                .addField(Lang.t(gid, "info.uptime"), uptimeStr, true)
+                .addField(Lang.t(gid, "info.active.players"), activePlayers + " / " + guilds.size(), true)
+                .addField("\u200B", "\u200B", true)
                 .addField(Lang.t(gid, "uptime.cpu"), cpuStr, true)
                 .addField(Lang.t(gid, "uptime.threads"), String.valueOf(Thread.activeCount()), true)
                 .addField("\u200B", "\u200B", true)
                 .addField(Lang.t(gid, "uptime.bot.ram"), usedMb + " / " + maxMb + " MB (" + ramPercent + "%)", true)
-                .addField(Lang.t(gid, "uptime.sys.ram"), sysRamStr, true);
+                .addField(Lang.t(gid, "uptime.sys.ram"), sysRamStr, true)
+                .addField(Lang.t(gid, "info.support"), supportContact, false)
+                .addField(Lang.t(gid, "info.discord"), Lang.t(gid, "info.discord.value"), false)
+                .setFooter(Lang.t(gid, "info.footer"));
+        event.replyEmbeds(embed.build()).queue();
     }
+
+    private void handlePing(SlashCommandInteractionEvent event) {
+        long gid = event.getGuild().getIdLong();
+        long gatewayPing = event.getJDA().getGatewayPing();
+        EmbedBuilder embed = new EmbedBuilder()
+                .setTitle(Lang.t(gid, "ping.title"))
+                .setColor(0x5865F2)
+                .addField(Lang.t(gid, "ping.gateway"), gatewayPing + "ms", true);
+        event.replyEmbeds(embed.build()).queue();
+    }
+
 
     private String formatUptime(Duration uptime) {
         long days = uptime.toDays();

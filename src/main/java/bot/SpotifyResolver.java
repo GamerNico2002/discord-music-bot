@@ -10,6 +10,9 @@ import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -19,7 +22,8 @@ public class SpotifyResolver {
     private static final Pattern SPOTIFY_PLAYLIST = Pattern.compile("open\\.spotify\\.com/(?:intl-[a-z]{2}/)?playlist/([a-zA-Z0-9]+)");
     private static final Pattern SPOTIFY_ALBUM = Pattern.compile("open\\.spotify\\.com/(?:intl-[a-z]{2}/)?album/([a-zA-Z0-9]+)");
 
-    private final HttpClient http = HttpClient.newHttpClient();
+    private final ExecutorService httpExecutor = Executors.newFixedThreadPool(8);
+    private final HttpClient http = HttpClient.newBuilder().executor(httpExecutor).build();
     private final ObjectMapper mapper = new ObjectMapper();
     private final String clientId;
     private final String clientSecret;
@@ -39,38 +43,40 @@ public class SpotifyResolver {
         return clientId != null && !clientId.isBlank() && clientSecret != null && !clientSecret.isBlank();
     }
 
-    public List<String> resolve(String url) {
-        List<String> queries = new ArrayList<>();
-        try {
-            // Spotify Short-Links auflösen
-            if (url.contains("spotify.link/")) {
-                url = resolveRedirect(url);
-                System.out.println("[Spotify] Redirect aufgeloest: " + url);
-            }
+    public CompletableFuture<List<String>> resolveAsync(String inputUrl) {
+        return CompletableFuture.supplyAsync(() -> {
+            List<String> queries = new ArrayList<>();
+            String url = inputUrl;
+            try {
+                if (url.contains("spotify.link/")) {
+                    url = resolveRedirect(url);
+                    System.out.println("[Spotify] Redirect aufgeloest: " + url);
+                }
 
-            Matcher trackMatcher = SPOTIFY_TRACK.matcher(url);
-            Matcher playlistMatcher = SPOTIFY_PLAYLIST.matcher(url);
-            Matcher albumMatcher = SPOTIFY_ALBUM.matcher(url);
+                Matcher trackMatcher = SPOTIFY_TRACK.matcher(url);
+                Matcher playlistMatcher = SPOTIFY_PLAYLIST.matcher(url);
+                Matcher albumMatcher = SPOTIFY_ALBUM.matcher(url);
 
-            if (trackMatcher.find()) {
-                System.out.println("[Spotify] Track ID: " + trackMatcher.group(1));
-                String search = resolveTrack(trackMatcher.group(1));
-                if (search != null) queries.add(search);
-            } else if (playlistMatcher.find()) {
-                System.out.println("[Spotify] Playlist ID: " + playlistMatcher.group(1));
-                queries.addAll(resolvePlaylist(playlistMatcher.group(1)));
-            } else if (albumMatcher.find()) {
-                System.out.println("[Spotify] Album ID: " + albumMatcher.group(1));
-                queries.addAll(resolveAlbum(albumMatcher.group(1)));
-            } else {
-                System.err.println("[Spotify] URL nicht erkannt: " + url);
+                if (trackMatcher.find()) {
+                    System.out.println("[Spotify] Track ID: " + trackMatcher.group(1));
+                    String search = resolveTrack(trackMatcher.group(1));
+                    if (search != null) queries.add(search);
+                } else if (playlistMatcher.find()) {
+                    System.out.println("[Spotify] Playlist ID: " + playlistMatcher.group(1));
+                    queries.addAll(resolvePlaylist(playlistMatcher.group(1)));
+                } else if (albumMatcher.find()) {
+                    System.out.println("[Spotify] Album ID: " + albumMatcher.group(1));
+                    queries.addAll(resolveAlbum(albumMatcher.group(1)));
+                } else {
+                    System.err.println("[Spotify] URL nicht erkannt: " + url);
+                }
+            } catch (Exception e) {
+                System.err.println("[Spotify] Fehler: " + e.getMessage());
+                e.printStackTrace();
             }
-        } catch (Exception e) {
-            System.err.println("[Spotify] Fehler: " + e.getMessage());
-            e.printStackTrace();
-        }
-        System.out.println("[Spotify] " + queries.size() + " Songs aufgeloest");
-        return queries;
+            System.out.println("[Spotify] " + queries.size() + " Songs aufgeloest");
+            return queries;
+        }, httpExecutor);
     }
 
     private String resolveRedirect(String url) throws Exception {
