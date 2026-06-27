@@ -1,14 +1,14 @@
 plugins {
     id 'java'
     id 'application'
-    id 'com.gradleup.shadow' version '9.4.0'
+    id 'com.gradleup.shadow' version '9.4.2'
 }
 
 group = 'bot'
 version = '2.3'
 java {
-    sourceCompatibility = JavaVersion.toVersion(25)
-    targetCompatibility = JavaVersion.toVersion(25)
+    sourceCompatibility = JavaVersion.toVersion(26)
+    targetCompatibility = JavaVersion.toVersion(26)
 }
 
 compileJava.options.encoding = 'UTF-8'
@@ -24,10 +24,10 @@ repositories {
 }
 
 dependencies {
-    implementation 'net.dv8tion:JDA:6.3.1'
+    implementation 'net.dv8tion:JDA:6.4.2'
     implementation 'dev.arbjerg:lavaplayer:2.2.6'
-    implementation 'dev.lavalink.youtube:v2:1.18.0'
-    implementation 'ch.qos.logback:logback-classic:1.5.6'
+    implementation 'dev.lavalink.youtube:v2:1.18.1'
+    implementation 'ch.qos.logback:logback-classic:1.5.36'
 
     // DAVE E2EE protocol support (required for Discord voice)
     implementation 'club.minnced:jdave-api:0.1.8'
