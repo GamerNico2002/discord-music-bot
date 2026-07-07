@@ -228,6 +228,7 @@ public class CommandHandler extends ListenerAdapter {
             case "ping" -> handlePing(event);
             case "dcleave" -> handleDcLeave(event);
             case "language" -> handleLanguage(event);
+            case "playlist" -> handlePlaylist(event);
         }
     }
 
@@ -253,6 +254,221 @@ public class CommandHandler extends ListenerAdapter {
                 .setTitle(Lang.t(guildId, "lang.title"))
                 .setDescription(Lang.t(guildId, "lang.changed", label))
                 .setColor(0x57F287).build()).queue();
+    }
+
+    private void handlePlaylist(SlashCommandInteractionEvent event) {
+        long gid = event.getGuild().getIdLong();
+        long uid = event.getUser().getIdLong();
+        String sub = event.getSubcommandName();
+
+        if (sub == null) {
+            List<Playlist> playlists = PlaylistManager.load(gid, uid);
+            if (playlists.isEmpty()) {
+                event.reply(Lang.t(gid, "playlist.empty")).setEphemeral(true).queue();
+                return;
+            }
+            StringBuilder sb = new StringBuilder();
+            sb.append(Lang.t(gid, "playlist.list", playlists.size(), PlaylistManager.MAX_PLAYLISTS)).append("\n");
+            for (int i = 0; i < playlists.size(); i++) {
+                Playlist pl = playlists.get(i);
+                sb.append("`").append(i + 1).append(".` **").append(pl.getName()).append("** \u2014 ")
+                  .append(pl.getSongs().size()).append(" Songs\n");
+            }
+            event.replyEmbeds(new EmbedBuilder()
+                    .setDescription(sb.toString())
+                    .setColor(0x5865F2).build()).queue();
+            return;
+        }
+
+        switch (sub) {
+            case "create" -> {
+                String name = event.getOption("name").getAsString().trim();
+                if (name.length() > 100) {
+                    event.reply("Playlist-Name zu lang (max 100 Zeichen)").setEphemeral(true).queue();
+                    return;
+                }
+                List<Playlist> playlists = PlaylistManager.load(gid, uid);
+                if (!PlaylistManager.canCreate(gid, uid)) {
+                    event.reply(Lang.t(gid, "playlist.create.limit", PlaylistManager.MAX_PLAYLISTS)).setEphemeral(true).queue();
+                    return;
+                }
+                if (PlaylistManager.find(playlists, name) != null) {
+                    event.reply(Lang.t(gid, "playlist.exists", name)).setEphemeral(true).queue();
+                    return;
+                }
+                playlists.add(new Playlist(name));
+                PlaylistManager.save(gid, uid, playlists);
+                event.replyEmbeds(new EmbedBuilder()
+                        .setDescription(Lang.t(gid, "playlist.created", name))
+                        .setColor(0x57F287).build()).queue();
+            }
+            case "add" -> {
+                String name = event.getOption("name").getAsString().trim();
+                List<Playlist> playlists = PlaylistManager.load(gid, uid);
+                Playlist pl = PlaylistManager.find(playlists, name);
+                if (pl == null) {
+                    event.reply(Lang.t(gid, "playlist.not.found", name)).setEphemeral(true).queue();
+                    return;
+                }
+                String query = event.getOption("query").getAsString().trim();
+                pl.getSongs().add(new Playlist.Song(query, query));
+                PlaylistManager.save(gid, uid, playlists);
+                event.replyEmbeds(new EmbedBuilder()
+                        .setDescription(Lang.t(gid, "playlist.added", query, pl.getName()))
+                        .setColor(0x57F287).build()).queue();
+            }
+            case "remove" -> {
+                String name = event.getOption("name").getAsString().trim();
+                int index = event.getOption("index").getAsInt();
+                List<Playlist> playlists = PlaylistManager.load(gid, uid);
+                Playlist pl = PlaylistManager.find(playlists, name);
+                if (pl == null) {
+                    event.reply(Lang.t(gid, "playlist.not.found", name)).setEphemeral(true).queue();
+                    return;
+                }
+                if (index < 1 || index > pl.getSongs().size()) {
+                    event.reply("Ungueltiger Index. Playlist hat " + pl.getSongs().size() + " Songs.").setEphemeral(true).queue();
+                    return;
+                }
+                Playlist.Song removed = pl.getSongs().remove(index - 1);
+                PlaylistManager.save(gid, uid, playlists);
+                event.replyEmbeds(new EmbedBuilder()
+                        .setDescription(Lang.t(gid, "playlist.removed", removed.getTitle(), pl.getName()))
+                        .setColor(0xED4245).build()).queue();
+            }
+            case "delete" -> {
+                String name = event.getOption("name").getAsString().trim();
+                List<Playlist> playlists = PlaylistManager.load(gid, uid);
+                Playlist pl = PlaylistManager.find(playlists, name);
+                if (pl == null) {
+                    event.reply(Lang.t(gid, "playlist.not.found", name)).setEphemeral(true).queue();
+                    return;
+                }
+                playlists.remove(pl);
+                PlaylistManager.save(gid, uid, playlists);
+                event.replyEmbeds(new EmbedBuilder()
+                        .setDescription(Lang.t(gid, "playlist.deleted", name))
+                        .setColor(0xED4245).build()).queue();
+            }
+            case "view" -> {
+                String name = event.getOption("name").getAsString().trim();
+                List<Playlist> playlists = PlaylistManager.load(gid, uid);
+                Playlist pl = PlaylistManager.find(playlists, name);
+                if (pl == null) {
+                    event.reply(Lang.t(gid, "playlist.not.found", name)).setEphemeral(true).queue();
+                    return;
+                }
+                List<Playlist.Song> songs = pl.getSongs();
+                if (songs.isEmpty()) {
+                    event.reply(Lang.t(gid, "playlist.songs", pl.getName(), 0) + "\nPlaylist ist leer.").queue();
+                    return;
+                }
+                StringBuilder sb = new StringBuilder();
+                sb.append(Lang.t(gid, "playlist.songs", pl.getName(), songs.size())).append("\n");
+                for (int i = 0; i < songs.size() && i < 20; i++) {
+                    Playlist.Song s = songs.get(i);
+                    sb.append("`").append(String.format("%2d", i + 1)).append(".` **").append(s.getTitle()).append("**\n");
+                }
+                if (songs.size() > 20) {
+                    sb.append("... und ").append(songs.size() - 20).append(" weitere Songs");
+                }
+                event.replyEmbeds(new EmbedBuilder()
+                        .setDescription(sb.toString())
+                        .setColor(0x5865F2).build()).queue();
+            }
+            case "play" -> {
+                GuildVoiceState voiceState = event.getMember().getVoiceState();
+                if (voiceState == null || !voiceState.inAudioChannel()) {
+                    event.reply(Lang.t(gid, "voice.required")).setEphemeral(true).queue();
+                    return;
+                }
+                String name = event.getOption("name").getAsString().trim();
+                List<Playlist> playlists = PlaylistManager.load(gid, uid);
+                Playlist pl = PlaylistManager.find(playlists, name);
+                if (pl == null) {
+                    event.reply(Lang.t(gid, "playlist.not.found", name)).setEphemeral(true).queue();
+                    return;
+                }
+                List<Playlist.Song> songs = pl.getSongs();
+                if (songs.isEmpty()) {
+                    event.reply("Playlist **" + name + "** ist leer.").setEphemeral(true).queue();
+                    return;
+                }
+
+                event.deferReply().queue();
+
+                AudioChannelUnion channel = voiceState.getChannel();
+                Guild guild = event.getGuild();
+                GuildMusicManager musicManager = getGuildMusic(guild);
+
+                nonstopGuilds.remove(gid);
+                cancelAutoNonstop(gid);
+                musicManager.scheduler.clearQueue();
+                musicManager.player.stopTrack();
+
+                final int[] queued = {0};
+                for (Playlist.Song song : songs) {
+                    String q = song.getUrl();
+                    if (!q.startsWith("http://") && !q.startsWith("https://")) {
+                        q = "ytsearch:" + q;
+                    }
+                    String finalQ = q;
+                    playerManager.loadItemOrdered(musicManager, q, new AudioLoadResultHandler() {
+                        @Override
+                        public void trackLoaded(AudioTrack track) {
+                            if (queued[0] == 0) {
+                                connectAndPlay(guild, channel, musicManager, track);
+                            } else {
+                                musicManager.scheduler.queue(track);
+                            }
+                            queued[0]++;
+                            checkDone();
+                        }
+
+                        @Override
+                        public void playlistLoaded(AudioPlaylist playlist) {
+                            if (!playlist.isSearchResult() && !playlist.getTracks().isEmpty()) {
+                                for (AudioTrack t : playlist.getTracks()) {
+                                    if (queued[0] == 0) {
+                                        connectAndPlay(guild, channel, musicManager, t);
+                                        queued[0]++;
+                                    } else {
+                                        musicManager.scheduler.queue(t);
+                                        queued[0]++;
+                                    }
+                                }
+                            } else if (!playlist.getTracks().isEmpty()) {
+                                AudioTrack first = playlist.getTracks().get(0);
+                                if (queued[0] == 0) {
+                                    connectAndPlay(guild, channel, musicManager, first);
+                                } else {
+                                    musicManager.scheduler.queue(first);
+                                }
+                                queued[0]++;
+                            }
+                            checkDone();
+                        }
+
+                        @Override
+                        public void noMatches() { checkDone(); }
+
+                        @Override
+                        public void loadFailed(FriendlyException e) {
+                            System.err.println("[Playlist] Load failed: " + finalQ + " - " + e.getMessage());
+                            checkDone();
+                        }
+
+                        private void checkDone() {
+                            if (queued[0] >= songs.size()) {
+                                event.getHook().sendMessageEmbeds(new EmbedBuilder()
+                                        .setDescription(Lang.t(gid, "playlist.playing.started", pl.getName(), queued[0]))
+                                        .setColor(0x5865F2).build()).queue();
+                            }
+                        }
+                    });
+                }
+            }
+        }
     }
 
     private void handleDcLeave(SlashCommandInteractionEvent event) {
@@ -512,6 +728,18 @@ public class CommandHandler extends ListenerAdapter {
             for (var entry : FILTER_PRESETS.entrySet()) {
                 if (input.isBlank() || entry.getKey().contains(input) || entry.getValue().toLowerCase().contains(input)) {
                     choices.add(new Command.Choice(entry.getValue(), entry.getKey()));
+                }
+            }
+        } else if (event.getName().equals("playlist") && event.getFocusedOption().getName().equals("name")) {
+            long uid = event.getUser().getIdLong();
+            long gid = event.getGuild().getIdLong();
+            List<Playlist> playlists = PlaylistManager.load(gid, uid);
+            for (Playlist pl : playlists) {
+                if (choices.size() >= 25) break;
+                String name = pl.getName();
+                if (input.isBlank() || name.toLowerCase().contains(input)) {
+                    String label = name.length() > 100 ? name.substring(0, 97) + "..." : name;
+                    choices.add(new Command.Choice(label, name));
                 }
             }
         } else if (event.getName().equals("dcleave") && event.getFocusedOption().getName().equals("server")) {

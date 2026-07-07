@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'bot'
-version = '2.3'
+version = '2.4'
 java {
     sourceCompatibility = JavaVersion.toVersion(26)
     targetCompatibility = JavaVersion.toVersion(26)

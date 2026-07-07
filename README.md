@@ -14,7 +14,7 @@
   <a href="../../actions/workflows/release.yml"><img src="https://github.com/GamerNico2002/discord-music-bot/actions/workflows/release.yml/badge.svg" alt="Build & Release"/></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"/></a>
   <a href="../../releases/latest"><img src="https://img.shields.io/github/v/release/GamerNico2002/discord-music-bot?color=5865F2" alt="Latest Release"/></a>
-  <img src="https://img.shields.io/badge/Java-25-orange?logo=openjdk" alt="Java 25"/>
+  <img src="https://img.shields.io/badge/Java-26-orange?logo=openjdk" alt="Java 26"/>
   <a href="https://discord.gg/9vMARH8hnV"><img src="https://img.shields.io/discord/0?label=Discord&logo=discord&logoColor=white&color=5865F2" alt="Discord"/></a>
   <img src="https://img.shields.io/github/stars/GamerNico2002/discord-music-bot?style=social" alt="Stars"/>
 </p>
@@ -45,6 +45,7 @@
 | 📋 **Queue Management** | Add, remove, move, skip-to, shuffle, clear, repeat (off/track/queue) |
 | 🎚️ **Audio Filters** | Bass boost, treble, pop, rock – built-in equalizer presets |
 | 🔁 **Nonstop Mode** | Auto-queue with configurable genres – endless Tekk, Techno, Uptempo & more |
+| 📂 **Playlist System** | Per-user, per-guild playlists – create, add, remove, delete & play via `/playlist` |
 | 🌍 **i18n** | Deutsch, English, Français, Español, Italiano – per-server language via `/language` |
 | 🎮 **Full Slash Commands** | All features accessible via Discord's native slash command system |
 | 🔐 **DAVE E2EE** | Full Discord DAVE protocol support (required since March 2026) |
@@ -76,6 +77,7 @@
 | `/nonstop [auto-on\|auto-off]` | Toggle nonstop auto-queue mode |
 | `/filter <preset>` | Apply audio filter / equalizer preset |
 | `/language [code]` | Change bot language per server (`de`, `en`, `fr`, `es`, `it`) |
+| `/playlist` | Create / manage / play playlists (`create`, `add`, `remove`, `delete`, `view`, `play`) |
 | `/invite` | Get bot invite link |
 | `/help` / `/info` / `/uptime` / `/ping` | Bot information & status |
 | `/dcleave <server>` | Force-leave a server (bot owner only) |
@@ -85,7 +87,7 @@
 ## 🚀 Installation
 
 ### Prerequisites
-- **Java 25+** ([Temurin](https://adoptium.net/) or [OpenJDK](https://jdk.java.net/25/))
+- **Java 26+** ([Temurin](https://adoptium.net/) or [OpenJDK](https://jdk.java.net/26/))
 - **Linux:** `opus`, `libsodium`, `ffmpeg` (handled by `install.sh`)
 - **Windows:** Java only – Opus/Sodium natives are bundled in the JAR
 
@@ -93,9 +95,9 @@
 
 ### 🪟 Windows
 
-#### 1. Install Java 25
+#### 1. Install Java 26
 ```powershell
-winget install EclipseAdoptium.Temurin.25.JDK
+winget install EclipseAdoptium.Temurin.26.JDK
 java -version  # verify
 ```
 
@@ -104,7 +106,7 @@ java -version  # verify
 2. Download `config.properties.example` → rename to `config.properties` → fill in your bot token
 3. Place both files in the **same folder** and double-click `start.bat` – or run:
    ```powershell
-   java --enable-native-access=ALL-UNNAMED -Xmx2G -jar discord-music-bot-2.2-all.jar
+java --enable-native-access=ALL-UNNAMED -Xmx2G -jar discord-music-bot-2.4-all.jar
    ```
 
 #### 2b. Build from source
@@ -123,10 +125,10 @@ notepad config.properties   # set bot.token
 
 #### Option A – Download prebuilt JAR
 ```bash
-wget https://github.com/GamerNico2002/discord-music-bot/releases/latest/download/discord-music-bot-2.2-all.jar
+wget https://github.com/GamerNico2002/discord-music-bot/releases/latest/download/discord-music-bot-2.4-all.jar
 wget https://raw.githubusercontent.com/GamerNico2002/discord-music-bot/main/config.properties.example -O config.properties
 nano config.properties
-java --enable-native-access=ALL-UNNAMED -Xmx2G -jar discord-music-bot-2.2-all.jar
+java --enable-native-access=ALL-UNNAMED -Xmx2G -jar discord-music-bot-2.4-all.jar
 ```
 
 #### Option B – Build from source
@@ -141,7 +143,7 @@ nano config.properties
 
 #### Option C – One-click setup (Debian/Ubuntu/Fedora/Arch)
 ```bash
-sudo ./install.sh   # installs Java 25 + opus/libsodium/ffmpeg
+sudo ./install.sh   # installs Java 26 + opus/libsodium/ffmpeg
 cp config.properties.example config.properties
 nano config.properties
 ./start.sh
@@ -202,7 +204,7 @@ After=network.target
 Type=simple
 User=musicbot
 WorkingDirectory=/opt/discord-music-bot
-ExecStart=/opt/jdk-25/bin/java --enable-native-access=ALL-UNNAMED -Xmx2G -jar discord-music-bot-2.2-all.jar
+ExecStart=/opt/jdk-26/bin/java --enable-native-access=ALL-UNNAMED -Xmx2G -jar discord-music-bot-2.4-all.jar
 Restart=always
 RestartSec=10
 

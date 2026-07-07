@@ -8,10 +8,12 @@ import net.dv8tion.jda.api.audio.AudioModuleConfig;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.events.guild.GuildJoinEvent;
+import net.dv8tion.jda.api.events.guild.GuildLeaveEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
+import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.cache.CacheFlag;
 
@@ -76,12 +78,36 @@ public class MusicBot extends ListenerAdapter {
                             .addChoice("\uD83C\uDDEC\uD83C\uDDE7 English", "en")
                             .addChoice("\uD83C\uDDEB\uD83C\uDDF7 Fran\u00e7ais", "fr")
                             .addChoice("\uD83C\uDDEA\uD83C\uDDF8 Espa\u00f1ol", "es")
-                            .addChoice("\uD83C\uDDEE\uD83C\uDDF9 Italiano", "it"))
+                            .addChoice("\uD83C\uDDEE\uD83C\uDDF9 Italiano", "it")),
+            Commands.slash("playlist", "Playlists verwalten / Manage your playlists")
+                    .addSubcommands(
+                            new SubcommandData("create", "Erstelle eine neue Playlist / Create a new playlist")
+                                    .addOption(OptionType.STRING, "name", "Playlist-Name", true),
+new SubcommandData("add", "Fuege einen Song zur Playlist hinzu / Add a song to a playlist")
+        .addOption(OptionType.STRING, "name", "Playlist-Name", true, true)
+        .addOption(OptionType.STRING, "query", "URL oder Suchbegriff", true),
+                            new SubcommandData("remove", "Entferne einen Song aus der Playlist / Remove a song from a playlist")
+                                    .addOption(OptionType.STRING, "name", "Playlist-Name", true, true)
+                                    .addOption(OptionType.INTEGER, "index", "Song-Nummer zum Entfernen", true),
+                            new SubcommandData("delete", "Loesche eine Playlist / Delete a playlist")
+                                    .addOption(OptionType.STRING, "name", "Playlist-Name", true, true),
+                            new SubcommandData("play", "Spiele eine Playlist / Play a playlist")
+                                    .addOption(OptionType.STRING, "name", "Playlist-Name", true, true),
+                            new SubcommandData("view", "Zeige die Songs einer Playlist / View songs in a playlist")
+                                    .addOption(OptionType.STRING, "name", "Playlist-Name", true, true)
+                    )
     );
 
     @Override
     public void onGuildJoin(GuildJoinEvent event) {
         registerForGuild(event.getGuild());
+    }
+
+    @Override
+    public void onGuildLeave(GuildLeaveEvent event) {
+        long guildId = event.getGuild().getIdLong();
+        PlaylistManager.deleteGuild(guildId);
+        System.out.println("[Playlist] Guild-Daten geloescht fuer: " + guildId);
     }
 
     private static void registerForGuild(Guild guild) {

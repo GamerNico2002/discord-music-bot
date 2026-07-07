@@ -206,6 +206,7 @@ public final class Lang {
                 "`/info` \u2014 Bot-Infos\n" +
                 "`/uptime` \u2014 Online-Zeit\n" +
                 "`/language` \u2014 Sprache aendern\n" +
+                "`/playlist` \u2014 Playlists erstellen / verwalten\n" +
                 "`/help` \u2014 Diese Hilfe");
         put("de", "help.footer", "Quellen: YouTube, SoundCloud, Spotify, Radio  |  Playlists werden unterstuetzt!");
         put("de", "invite.title", "\uD83D\uDD17 Bot einladen");
@@ -234,6 +235,20 @@ public final class Lang {
         put("de", "lang.title", "\uD83C\uDF0D Sprache");
         put("de", "lang.changed", "\u2705 Sprache geaendert auf **{0}**");
         put("de", "lang.current", "Aktuelle Sprache: **{0}**\nWaehle eine neue Sprache mit `/language code:<de|en|fr|es|it>`");
+        put("de", "playlist.list", "**Deine Playlists ({0}/{1}):**");
+        put("de", "playlist.empty", "Du hast noch keine Playlists. Erstelle eine mit `/playlist create`.");
+        put("de", "playlist.created", "Playlist **{0}** erstellt");
+        put("de", "playlist.create.limit", "Maximal {0} Playlists erlaubt");
+        put("de", "playlist.exists", "Playlist **{0}** existiert bereits");
+        put("de", "playlist.not.found", "Playlist **{0}** nicht gefunden");
+        put("de", "playlist.deleted", "Playlist **{0}** geloescht");
+        put("de", "playlist.added", "**{0}** zu Playlist **{1}** hinzugefuegt");
+        put("de", "playlist.add.current", "**{0}** zu Playlist **{1}** hinzugefuegt");
+        put("de", "playlist.add.failed", "Konnte Song nicht zur Playlist hinzufuegen");
+        put("de", "playlist.removed", "Song **{0}** aus Playlist **{1}** entfernt");
+        put("de", "playlist.songs", "**Playlist: {0}** ({1} Songs)");
+        put("de", "playlist.playing", "Spiele Playlist **{0}** ({1} Songs)");
+        put("de", "playlist.playing.started", "Spiele Playlist **{0}** ({1} Songs)");
 
         // ===== ENGLISH =====
         put("en", "voice.required", "You must be in a voice channel!");
@@ -343,6 +358,7 @@ public final class Lang {
                 "`/info` \u2014 Bot info\n" +
                 "`/uptime` \u2014 Online time\n" +
                 "`/language` \u2014 Change language\n" +
+                "`/playlist` \u2014 Create / manage playlists\n" +
                 "`/help` \u2014 This help");
         put("en", "help.footer", "Sources: YouTube, SoundCloud, Spotify, Radio  |  Playlists supported!");
         put("en", "invite.title", "\uD83D\uDD17 Invite bot");
@@ -371,6 +387,19 @@ public final class Lang {
         put("en", "lang.title", "\uD83C\uDF0D Language");
         put("en", "lang.changed", "\u2705 Language changed to **{0}**");
         put("en", "lang.current", "Current language: **{0}**\nChoose a new language with `/language code:<de|en|fr|es|it>`");
+        put("en", "playlist.list", "**Your playlists ({0}/{1}):**");
+        put("en", "playlist.empty", "You don't have any playlists yet. Create one with `/playlist create`.");
+        put("en", "playlist.created", "Playlist **{0}** created");
+        put("en", "playlist.create.limit", "Maximum of {0} playlists allowed");
+        put("en", "playlist.exists", "Playlist **{0}** already exists");
+        put("en", "playlist.not.found", "Playlist **{0}** not found");
+        put("en", "playlist.deleted", "Playlist **{0}** deleted");
+        put("en", "playlist.added", "**{0}** added to playlist **{1}**");
+        put("en", "playlist.add.current", "**{0}** added to playlist **{1}**");
+        put("en", "playlist.add.failed", "Could not add song to playlist");
+        put("en", "playlist.removed", "Song **{0}** removed from playlist **{1}**");
+        put("en", "playlist.songs", "**Playlist: {0}** ({1} songs)");
+        put("en", "playlist.playing.started", "Playing playlist **{0}** ({1} songs)");
 
         // ===== FRAN\u00c7AIS =====
         put("fr", "voice.required", "Tu dois \u00eatre dans un salon vocal !");
@@ -480,6 +509,7 @@ public final class Lang {
                 "`/info` \u2014 Infos du bot\n" +
                 "`/uptime` \u2014 Temps en ligne\n" +
                 "`/language` \u2014 Changer la langue\n" +
+                "`/playlist` \u2014 Cr\u00e9er / g\u00e9rer des playlists\n" +
                 "`/help` \u2014 Cette aide");
         put("fr", "help.footer", "Sources : YouTube, SoundCloud, Spotify, Radio  |  Playlists support\u00e9es !");
         put("fr", "invite.title", "\uD83D\uDD17 Inviter le bot");
@@ -508,6 +538,19 @@ public final class Lang {
         put("fr", "lang.title", "\uD83C\uDF0D Langue");
         put("fr", "lang.changed", "\u2705 Langue chang\u00e9e en **{0}**");
         put("fr", "lang.current", "Langue actuelle : **{0}**\nChoisis une nouvelle langue avec `/language code:<de|en|fr|es|it>`");
+        put("fr", "playlist.list", "**Tes playlists ({0}/{1}) :**");
+        put("fr", "playlist.empty", "Tu n'as pas encore de playlist. Cr\u00e9es-en une avec `/playlist create`.");
+        put("fr", "playlist.created", "Playlist **{0}** cr\u00e9\u00e9e");
+        put("fr", "playlist.create.limit", "Maximum de {0} playlists autoris\u00e9");
+        put("fr", "playlist.exists", "La playlist **{0}** existe d\u00e9j\u00e0");
+        put("fr", "playlist.not.found", "Playlist **{0}** introuvable");
+        put("fr", "playlist.deleted", "Playlist **{0}** supprim\u00e9e");
+        put("fr", "playlist.added", "**{0}** ajout\u00e9 \u00e0 la playlist **{1}**");
+        put("fr", "playlist.add.current", "**{0}** ajout\u00e9 \u00e0 la playlist **{1}**");
+        put("fr", "playlist.add.failed", "Impossible d'ajouter le morceau \u00e0 la playlist");
+        put("fr", "playlist.removed", "Morceau **{0}** retir\u00e9 de la playlist **{1}**");
+        put("fr", "playlist.songs", "**Playlist : {0}** ({1} morceaux)");
+        put("fr", "playlist.playing.started", "Lecture de la playlist **{0}** ({1} morceaux)");
 
         // ===== ESPA\u00d1OL =====
         put("es", "voice.required", "\u00a1Debes estar en un canal de voz!");
@@ -617,6 +660,7 @@ public final class Lang {
                 "`/info` \u2014 Info del bot\n" +
                 "`/uptime` \u2014 Tiempo en l\u00ednea\n" +
                 "`/language` \u2014 Cambiar idioma\n" +
+                "`/playlist` \u2014 Crear / gestionar playlists\n" +
                 "`/help` \u2014 Esta ayuda");
         put("es", "help.footer", "Fuentes: YouTube, SoundCloud, Spotify, Radio  |  \u00a1Playlists soportadas!");
         put("es", "invite.title", "\uD83D\uDD17 Invitar bot");
@@ -645,6 +689,19 @@ public final class Lang {
         put("es", "lang.title", "\uD83C\uDF0D Idioma");
         put("es", "lang.changed", "\u2705 Idioma cambiado a **{0}**");
         put("es", "lang.current", "Idioma actual: **{0}**\nElige un nuevo idioma con `/language code:<de|en|fr|es|it>`");
+        put("es", "playlist.list", "**Tus playlists ({0}/{1}):**");
+        put("es", "playlist.empty", "A\u00fan no tienes playlists. Crea una con `/playlist create`.");
+        put("es", "playlist.created", "Playlist **{0}** creada");
+        put("es", "playlist.create.limit", "M\u00e1ximo de {0} playlists permitidas");
+        put("es", "playlist.exists", "La playlist **{0}** ya existe");
+        put("es", "playlist.not.found", "Playlist **{0}** no encontrada");
+        put("es", "playlist.deleted", "Playlist **{0}** eliminada");
+        put("es", "playlist.added", "**{0}** a\u00f1adido a la playlist **{1}**");
+        put("es", "playlist.add.current", "**{0}** a\u00f1adido a la playlist **{1}**");
+        put("es", "playlist.add.failed", "No se pudo a\u00f1adir la canci\u00f3n a la playlist");
+        put("es", "playlist.removed", "Canci\u00f3n **{0}** eliminada de la playlist **{1}**");
+        put("es", "playlist.songs", "**Playlist: {0}** ({1} canciones)");
+        put("es", "playlist.playing.started", "Reproduciendo playlist **{0}** ({1} canciones)");
 
         // ===== ITALIANO =====
         put("it", "voice.required", "Devi essere in un canale vocale!");
@@ -754,6 +811,7 @@ public final class Lang {
                 "`/info` \u2014 Info bot\n" +
                 "`/uptime` \u2014 Tempo online\n" +
                 "`/language` \u2014 Cambia lingua\n" +
+                "`/playlist` \u2014 Crea / gestisci playlist\n" +
                 "`/help` \u2014 Questo aiuto");
         put("it", "help.footer", "Fonti: YouTube, SoundCloud, Spotify, Radio  |  Playlist supportate!");
         put("it", "invite.title", "\uD83D\uDD17 Invita bot");
@@ -782,5 +840,18 @@ public final class Lang {
         put("it", "lang.title", "\uD83C\uDF0D Lingua");
         put("it", "lang.changed", "\u2705 Lingua cambiata in **{0}**");
         put("it", "lang.current", "Lingua attuale: **{0}**\nScegli una nuova lingua con `/language code:<de|en|fr|es|it>`");
+        put("it", "playlist.list", "**Le tue playlist ({0}/{1}):**");
+        put("it", "playlist.empty", "Non hai ancora playlist. Creane una con `/playlist create`.");
+        put("it", "playlist.created", "Playlist **{0}** creata");
+        put("it", "playlist.create.limit", "Massimo {0} playlist consentite");
+        put("it", "playlist.exists", "La playlist **{0}** esiste gi\u00e0");
+        put("it", "playlist.not.found", "Playlist **{0}** non trovata");
+        put("it", "playlist.deleted", "Playlist **{0}** eliminata");
+        put("it", "playlist.added", "**{0}** aggiunto alla playlist **{1}**");
+        put("it", "playlist.add.current", "**{0}** aggiunto alla playlist **{1}**");
+        put("it", "playlist.add.failed", "Impossibile aggiungere il brano alla playlist");
+        put("it", "playlist.removed", "Brano **{0}** rimosso dalla playlist **{1}**");
+        put("it", "playlist.songs", "**Playlist: {0}** ({1} brani)");
+        put("it", "playlist.playing.started", "Riproduco la playlist **{0}** ({1} brani)");
     }
 }
