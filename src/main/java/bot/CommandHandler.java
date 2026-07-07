@@ -311,11 +311,52 @@ public class CommandHandler extends ListenerAdapter {
                     return;
                 }
                 String query = event.getOption("query").getAsString().trim();
-                pl.getSongs().add(new Playlist.Song(query, query));
-                PlaylistManager.save(gid, uid, playlists);
-                event.replyEmbeds(new EmbedBuilder()
-                        .setDescription(Lang.t(gid, "playlist.added", query, pl.getName()))
-                        .setColor(0x57F287).build()).queue();
+
+                if (query.contains("playlist?list=") || query.contains("&list=")
+                        || query.contains("/sets/") || query.contains("/playlists/")
+                        || query.contains("album/") || query.contains("spotify.com/")) {
+                    event.deferReply().queue();
+                    Guild guild = event.getGuild();
+                    GuildMusicManager musicManager = getGuildMusic(guild);
+                    playerManager.loadItemOrdered(musicManager, query, new AudioLoadResultHandler() {
+                        @Override
+                        public void trackLoaded(AudioTrack track) {
+                            pl.getSongs().add(new Playlist.Song(track.getInfo().title, track.getInfo().uri));
+                            PlaylistManager.save(gid, uid, playlists);
+                            event.getHook().sendMessageEmbeds(new EmbedBuilder()
+                                    .setDescription(Lang.t(gid, "playlist.added", track.getInfo().title, pl.getName()))
+                                    .setColor(0x57F287).build()).queue();
+                        }
+
+                        @Override
+                        public void playlistLoaded(AudioPlaylist playlist) {
+                            for (AudioTrack track : playlist.getTracks()) {
+                                pl.getSongs().add(new Playlist.Song(track.getInfo().title, track.getInfo().uri));
+                            }
+                            PlaylistManager.save(gid, uid, playlists);
+                            event.getHook().sendMessageEmbeds(new EmbedBuilder()
+                                    .setDescription(Lang.t(gid, "playlist.added",
+                                            playlist.getTracks().size() + " Songs", pl.getName()))
+                                    .setColor(0x57F287).build()).queue();
+                        }
+
+                        @Override
+                        public void noMatches() {
+                            event.getHook().sendMessage(Lang.t(gid, "nothing.found", query)).queue();
+                        }
+
+                        @Override
+                        public void loadFailed(FriendlyException e) {
+                            event.getHook().sendMessage(Lang.t(gid, "load.error", e.getMessage())).queue();
+                        }
+                    });
+                } else {
+                    pl.getSongs().add(new Playlist.Song(query, query));
+                    PlaylistManager.save(gid, uid, playlists);
+                    event.replyEmbeds(new EmbedBuilder()
+                            .setDescription(Lang.t(gid, "playlist.added", query, pl.getName()))
+                            .setColor(0x57F287).build()).queue();
+                }
             }
             case "remove" -> {
                 String name = event.getOption("name").getAsString().trim();

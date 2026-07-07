@@ -9,6 +9,7 @@ import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.events.guild.GuildJoinEvent;
 import net.dv8tion.jda.api.events.guild.GuildLeaveEvent;
+import net.dv8tion.jda.api.events.guild.GuildReadyEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
@@ -20,16 +21,22 @@ import net.dv8tion.jda.api.utils.cache.CacheFlag;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MusicBot extends ListenerAdapter {
 
     public static final Properties CONFIG = new Properties();
     public static final Instant START_TIME = Instant.now();
     public static JDA JDA;
+
+    private final Set<Long> guildsAtStartup = new HashSet<>();
+    private final AtomicBoolean ready = new AtomicBoolean(false);
 
     private static final List<CommandData> COMMANDS = List.of(
             Commands.slash("play", "Spielt einen Song von YouTube, SoundCloud oder Spotify")
@@ -99,15 +106,31 @@ new SubcommandData("add", "Fuege einen Song zur Playlist hinzu / Add a song to a
     );
 
     @Override
+    public void onGuildReady(GuildReadyEvent event) {
+        long gid = event.getGuild().getIdLong();
+        guildsAtStartup.add(gid);
+        // Nach dem ersten GuildReady sind wir durchgestartet
+        ready.set(true);
+    }
+
+    @Override
     public void onGuildJoin(GuildJoinEvent event) {
+        guildsAtStartup.add(event.getGuild().getIdLong());
         registerForGuild(event.getGuild());
     }
 
     @Override
     public void onGuildLeave(GuildLeaveEvent event) {
         long guildId = event.getGuild().getIdLong();
-        PlaylistManager.deleteGuild(guildId);
-        System.out.println("[Playlist] Guild-Daten geloescht fuer: " + guildId);
+        // Nur loeschen, wenn der Bot wirklich durchgestartet ist
+        // und diese Guild beim Start bekannt war (kein falsches Event)
+        if (ready.get() && guildsAtStartup.contains(guildId)) {
+            PlaylistManager.deleteGuild(guildId);
+            System.out.println("[Playlist] Guild-Daten geloescht fuer: " + guildId);
+        } else {
+            System.out.println("[Playlist] GuildLeave ignoriert (Startup-Guard): " + guildId);
+        }
+        guildsAtStartup.remove(guildId);
     }
 
     private static void registerForGuild(Guild guild) {
