@@ -312,9 +312,36 @@ public class CommandHandler extends ListenerAdapter {
                 }
                 String query = event.getOption("query").getAsString().trim();
 
-                if (query.contains("playlist?list=") || query.contains("&list=")
+                boolean isPlaylistUrl = query.contains("playlist?list=") || query.contains("&list=")
                         || query.contains("/sets/") || query.contains("/playlists/")
-                        || query.contains("album/") || query.contains("spotify.com/")) {
+                        || query.contains("album/");
+
+                if (spotify.isSpotifyUrl(query)) {
+                    if (!spotify.isConfigured()) {
+                        event.reply(Lang.t(gid, "spotify.not.configured")).setEphemeral(true).queue();
+                        return;
+                    }
+                    event.deferReply().queue();
+                    spotify.resolveAsync(query).thenAcceptAsync(searches -> {
+                        if (searches.isEmpty()) {
+                            event.getHook().sendMessage(Lang.t(gid, "spotify.no.songs")).queue();
+                            return;
+                        }
+                        for (String s : searches) {
+                            String title = s.replace("ytsearch:", "");
+                            pl.getSongs().add(new Playlist.Song(title, s));
+                        }
+                        PlaylistManager.save(gid, uid, playlists);
+                        event.getHook().sendMessageEmbeds(new EmbedBuilder()
+                                .setDescription(Lang.t(gid, "playlist.added",
+                                        searches.size() + " Songs", pl.getName()))
+                                .setColor(0x1DB954).build()).queue();
+                    }, npScheduler).exceptionally(e -> {
+                        event.getHook().sendMessage(Lang.t(gid, "spotify.error",
+                                e.getCause().getMessage())).queue();
+                        return null;
+                    });
+                } else if (isPlaylistUrl) {
                     event.deferReply().queue();
                     Guild guild = event.getGuild();
                     GuildMusicManager musicManager = getGuildMusic(guild);
