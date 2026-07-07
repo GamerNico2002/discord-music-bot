@@ -99,71 +99,50 @@ public class SpotifyResolver {
     }
 
     private List<String> resolvePlaylist(String playlistId) throws Exception {
-        System.out.println("[Spotify] Lade Playlist via Embed-Seite...");
-        return resolvePlaylistViaEmbed(playlistId);
-    }
-
-    private List<String> resolvePlaylistViaEmbed(String playlistId) throws Exception {
+        System.out.println("[Spotify] Lade Playlist via API mit Pagination...");
+        ensureToken();
         List<String> results = new ArrayList<>();
-        HttpRequest req = HttpRequest.newBuilder()
-                .uri(URI.create("https://open.spotify.com/embed/playlist/" + playlistId))
-                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-                .GET().build();
-        HttpResponse<String> resp = http.send(req, HttpResponse.BodyHandlers.ofString());
-        String body = resp.body();
-
-        // JSON aus dem <script> Tag extrahieren
-        java.util.regex.Matcher m = java.util.regex.Pattern.compile("<script[^>]*>(\\{\"props\".*?)</script>", java.util.regex.Pattern.DOTALL).matcher(body);
-        if (!m.find()) {
-            System.err.println("[Spotify] Embed-Seite konnte nicht geparst werden");
-            throw new RuntimeException("Playlist konnte nicht geladen werden. Moeglicherweise ist sie privat.");
-        }
-
-        JsonNode root = mapper.readTree(m.group(1));
-        JsonNode trackList = root.at("/props/pageProps/state/data/entity/trackList");
-        if (trackList == null || trackList.isMissingNode() || !trackList.isArray()) {
-            System.err.println("[Spotify] Keine trackList in Embed-Response");
-            throw new RuntimeException("Playlist konnte nicht geladen werden. Moeglicherweise ist sie privat.");
-        }
-
-        for (JsonNode track : trackList) {
-            if (results.size() >= 200) break;
-            String title = track.has("title") ? track.get("title").asText() : null;
-            String artist = track.has("subtitle") ? track.get("subtitle").asText() : null;
-            if (title != null && artist != null) {
-                System.out.println("[Spotify] -> ytsearch: " + title + " " + artist);
-                results.add("ytsearch:" + title + " " + artist);
+        int offset = 0;
+        int limit = 50;
+        while (true) {
+            JsonNode page = apiGet("https://api.spotify.com/v1/playlists/" + playlistId
+                    + "/tracks?limit=" + limit + "&offset=" + offset + "&fields=items(track(name,artists(name))),total,next");
+            JsonNode items = page.get("items");
+            if (items == null || !items.isArray()) break;
+            for (JsonNode item : items) {
+                JsonNode track = item.get("track");
+                if (track == null || track.isNull()) continue;
+                String search = trackToSearch(track);
+                if (search != null) results.add(search);
             }
+            if (results.size() >= 500) break;
+            if (page.get("next") == null || page.get("next").isNull()) break;
+            offset += limit;
         }
+        System.out.println("[Spotify] Playlist: " + results.size() + " Songs via API geladen");
         return results;
     }
 
     private List<String> resolveAlbum(String albumId) throws Exception {
-        System.out.println("[Spotify] Lade Album via Embed-Seite...");
+        System.out.println("[Spotify] Lade Album via API mit Pagination...");
+        ensureToken();
         List<String> results = new ArrayList<>();
-        HttpRequest req = HttpRequest.newBuilder()
-                .uri(URI.create("https://open.spotify.com/embed/album/" + albumId))
-                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-                .GET().build();
-        HttpResponse<String> resp = http.send(req, HttpResponse.BodyHandlers.ofString());
-        String body = resp.body();
-
-        java.util.regex.Matcher m = java.util.regex.Pattern.compile("<script[^>]*>(\\{\"props\".*?)</script>", java.util.regex.Pattern.DOTALL).matcher(body);
-        if (!m.find()) {
-            throw new RuntimeException("Album konnte nicht geladen werden.");
-        }
-
-        JsonNode root = mapper.readTree(m.group(1));
-        JsonNode trackList = root.at("/props/pageProps/state/data/entity/trackList");
-        if (trackList != null && trackList.isArray()) {
-            for (JsonNode track : trackList) {
-                String title = track.has("title") ? track.get("title").asText() : null;
-                String artist = track.has("subtitle") ? track.get("subtitle").asText() : null;
-                if (title != null && artist != null) {
-                    results.add("ytsearch:" + title + " " + artist);
-                }
+        int offset = 0;
+        int limit = 50;
+        while (true) {
+            JsonNode page = apiGet("https://api.spotify.com/v1/albums/" + albumId
+                    + "/tracks?limit=" + limit + "&offset=" + offset + "&fields=items(name,artists(name)),total,next");
+            JsonNode items = page.get("items");
+            if (items == null || !items.isArray()) break;
+            for (JsonNode track : items) {
+                String search = trackToSearch(track);
+                if (search != null) results.add(search);
             }
+            if (results.size() >= 500) break;
+            if (page.get("next") == null || page.get("next").isNull()) break;
+            offset += limit;
         }
+        System.out.println("[Spotify] Album: " + results.size() + " Songs via API geladen");
         return results;
     }
 
