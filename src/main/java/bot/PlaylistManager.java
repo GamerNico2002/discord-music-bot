@@ -1,8 +1,12 @@
 package bot;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+
 import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -14,25 +18,21 @@ public class PlaylistManager {
 
     private static final Path BASE_DIR = Paths.get("playlists");
     public static final int MAX_PLAYLISTS = 10;
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final Type PLAYLIST_LIST_TYPE = new TypeToken<List<Playlist>>(){}.getType();
 
     public static List<Playlist> load(long guildId, long userId) {
-        Path file = getFile(guildId, userId);
-        if (!Files.exists(file)) return new ArrayList<>();
-        try (DataInputStream in = new DataInputStream(Files.newInputStream(file))) {
-            int count = in.readInt();
-            List<Playlist> playlists = new ArrayList<>();
-            for (int i = 0; i < count; i++) {
-                String name = in.readUTF();
-                Playlist pl = new Playlist(name);
-                int songCount = in.readInt();
-                for (int j = 0; j < songCount; j++) {
-                    String title = in.readUTF();
-                    String url = in.readUTF();
-                    pl.getSongs().add(new Playlist.Song(title, url));
-                }
-                playlists.add(pl);
+        Path file = getFile(guildId, userId, ".json");
+        if (!Files.exists(file)) {
+            Path oldFile = getFile(guildId, userId, ".dat");
+            if (Files.exists(oldFile)) {
+                return migrate(guildId, userId, oldFile);
             }
-            return playlists;
+            return new ArrayList<>();
+        }
+        try (var reader = Files.newBufferedReader(file)) {
+            List<Playlist> playlists = GSON.fromJson(reader, PLAYLIST_LIST_TYPE);
+            return playlists != null ? playlists : new ArrayList<>();
         } catch (IOException e) {
             System.err.println("[Playlist] Load error: " + e.getMessage());
             return new ArrayList<>();
@@ -42,16 +42,9 @@ public class PlaylistManager {
     public static void save(long guildId, long userId, List<Playlist> playlists) {
         try {
             Files.createDirectories(getDir(guildId, userId));
-            try (DataOutputStream out = new DataOutputStream(Files.newOutputStream(getFile(guildId, userId)))) {
-                out.writeInt(playlists.size());
-                for (Playlist pl : playlists) {
-                    out.writeUTF(pl.getName());
-                    out.writeInt(pl.getSongs().size());
-                    for (Playlist.Song song : pl.getSongs()) {
-                        out.writeUTF(song.getTitle() != null ? song.getTitle() : "");
-                        out.writeUTF(song.getUrl() != null ? song.getUrl() : "");
-                    }
-                }
+            Path file = getFile(guildId, userId, ".json");
+            try (var writer = Files.newBufferedWriter(file)) {
+                GSON.toJson(playlists, writer);
             }
         } catch (IOException e) {
             System.err.println("[Playlist] Save error: " + e.getMessage());
@@ -60,8 +53,10 @@ public class PlaylistManager {
 
     public static void deleteAll(long guildId, long userId) {
         try {
-            Path file = getFile(guildId, userId);
-            Files.deleteIfExists(file);
+            Path jsonFile = getFile(guildId, userId, ".json");
+            Files.deleteIfExists(jsonFile);
+            Path datFile = getFile(guildId, userId, ".dat");
+            Files.deleteIfExists(datFile);
             Path dir = getDir(guildId, userId);
             if (Files.exists(dir)) {
                 try (var list = Files.list(dir)) {
@@ -100,6 +95,32 @@ public class PlaylistManager {
         return null;
     }
 
+    private static List<Playlist> migrate(long guildId, long userId, Path oldFile) {
+        System.out.println("[Playlist] Migrating old .dat format to .json for guild=" + guildId + " user=" + userId);
+        try (DataInputStream in = new DataInputStream(Files.newInputStream(oldFile))) {
+            int count = in.readInt();
+            List<Playlist> playlists = new ArrayList<>();
+            for (int i = 0; i < count; i++) {
+                String name = in.readUTF();
+                Playlist pl = new Playlist(name);
+                int songCount = in.readInt();
+                for (int j = 0; j < songCount; j++) {
+                    String title = in.readUTF();
+                    String url = in.readUTF();
+                    pl.getSongs().add(new Playlist.Song(title, url));
+                }
+                playlists.add(pl);
+            }
+            save(guildId, userId, playlists);
+            Files.deleteIfExists(oldFile);
+            System.out.println("[Playlist] Migration complete for guild=" + guildId + " user=" + userId);
+            return playlists;
+        } catch (IOException e) {
+            System.err.println("[Playlist] Migration error: " + e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
     private static Path getDir(long guildId, long userId) {
         return BASE_DIR.resolve(String.valueOf(guildId)).resolve(String.valueOf(userId));
     }
@@ -108,7 +129,7 @@ public class PlaylistManager {
         return BASE_DIR.resolve(String.valueOf(guildId));
     }
 
-    private static Path getFile(long guildId, long userId) {
-        return getDir(guildId, userId).resolve("playlists.dat");
+    private static Path getFile(long guildId, long userId, String extension) {
+        return getDir(guildId, userId).resolve("playlists" + extension);
     }
 }

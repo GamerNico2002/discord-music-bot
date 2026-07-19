@@ -5,10 +5,10 @@ plugins {
 }
 
 group = 'bot'
-version = '2.4'
+version = '2.5'
 java {
-    sourceCompatibility = JavaVersion.toVersion(26)
-    targetCompatibility = JavaVersion.toVersion(26)
+    sourceCompatibility = JavaVersion.toVersion(25)
+    targetCompatibility = JavaVersion.toVersion(25)
 }
 
 compileJava.options.encoding = 'UTF-8'
@@ -28,6 +28,7 @@ dependencies {
     implementation 'dev.arbjerg:lavaplayer:2.2.6'
     implementation 'dev.lavalink.youtube:v2:1.18.1'
     implementation 'ch.qos.logback:logback-classic:1.5.36'
+    implementation 'com.google.code.gson:gson:2.12.1'
 
     // DAVE E2EE protocol support (required for Discord voice)
     implementation 'club.minnced:jdave-api:0.1.8'
