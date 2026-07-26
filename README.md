@@ -20,6 +20,10 @@
 </p>
 
 <p align="center">
+  <a href="https://discord.com/oauth2/authorize?client_id=1389665464795529397&permissions=3145728&scope=bot%20applications.commands"><img src="https://img.shields.io/badge/Invite_Bot-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Invite Bot"/></a>
+</p>
+
+<p align="center">
   <a href="#-features">Features</a> •
   <a href="#-commands">Commands</a> •
   <a href="#-installation">Installation</a> •
