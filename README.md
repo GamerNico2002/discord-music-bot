@@ -15,7 +15,6 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"/></a>
   <a href="../../releases/latest"><img src="https://img.shields.io/github/v/release/GamerNico2002/discord-music-bot?color=5865F2" alt="Latest Release"/></a>
   <img src="https://img.shields.io/badge/Java-26-orange?logo=openjdk" alt="Java 26"/>
-  <a href="https://discord.gg/9vMARH8hnV"><img src="https://img.shields.io/discord/0?label=Discord&logo=discord&logoColor=white&color=5865F2" alt="Discord"/></a>
   <img src="https://img.shields.io/github/stars/GamerNico2002/discord-music-bot?style=social" alt="Stars"/>
 </p>
 
