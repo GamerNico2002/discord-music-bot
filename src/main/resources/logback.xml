@@ -1,0 +1,11 @@
+<configuration>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss} [%level] %logger{30} - %msg%n</pattern>
+        </encoder>
+    </appender>
+    <logger name="net.dv8tion.jda.internal.audio" level="DEBUG" />
+    <root level="INFO">
+        <appender-ref ref="STDOUT" />
+    </root>
+</configuration>

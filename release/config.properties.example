@@ -1,0 +1,37 @@
+# =====================================================
+# Discord Music Bot - Beispielkonfiguration
+# Kopiere diese Datei zu "config.properties" und trage
+# deine eigenen Werte ein.
+# =====================================================
+
+# Discord Bot Token (https://discord.com/developers/applications)
+bot.token=DEIN_DISCORD_BOT_TOKEN
+
+# Standard-Lautstaerke (0-100)
+bot.volume=50
+
+# Bot Status (wird im Discord-Profil angezeigt)
+bot.status=Musik | /help
+
+# Bot Owner Name (wird in /info angezeigt)
+bot.owner=DeinName
+
+# Bot Owner Discord User ID (fuer owner-only Commands wie /dcleave)
+bot.owner.id=000000000000000000
+
+# Anzahl JDA-Shards (fuer 1000+ Guilds)
+# 1 Shard pro 2500 Guilds empfohlen. Bei <1000 Guilds = 1 (Standard)
+shard.count=1
+
+# Support/Kontakt (wird in /info angezeigt)
+bot.support=Bei Problemen melde dich bei mir
+
+# Spotify API (https://developer.spotify.com/dashboard)
+# Optional - nur noetig wenn du Spotify-Links abspielen willst
+spotify.client.id=
+spotify.client.secret=
+
+# Nonstop / Auto-Nonstop Suchbegriffe (Komma-getrennt). Leer = Standard-Werte
+# Beispiel: nonstop.genres=techno,hardstyle,rock,80er
+nonstop.genres=
+nonstop.modifiers=

@@ -1,0 +1,57 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'com.gradleup.shadow' version '9.4.2'
+}
+
+group = 'bot'
+version = '2.6'
+java {
+    sourceCompatibility = JavaVersion.toVersion(25)
+    targetCompatibility = JavaVersion.toVersion(25)
+}
+
+compileJava.options.encoding = 'UTF-8'
+
+application {
+    mainClass = 'bot.MusicBot'
+}
+
+repositories {
+    mavenCentral()
+    maven { url 'https://jitpack.io' }
+    maven { url 'https://maven.lavalink.dev/releases' }
+}
+
+dependencies {
+    implementation 'net.dv8tion:JDA:6.4.2'
+    implementation 'dev.arbjerg:lavaplayer:2.2.6'
+    implementation 'dev.lavalink.youtube:v2:1.18.1'
+    implementation 'ch.qos.logback:logback-classic:1.5.36'
+    implementation 'com.google.code.gson:gson:2.12.1'
+    implementation 'org.slf4j:slf4j-api:2.0.16'
+
+    // DAVE E2EE protocol support (required for Discord voice)
+    implementation 'club.minnced:jdave-api:0.1.8'
+    implementation 'club.minnced:jdave-native-win-x86-64:0.1.8'
+    implementation 'club.minnced:jdave-native-linux-x86-64:0.1.8'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.11.3'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'bot.MusicBot'
+    }
+}
+
+processResources {
+    filesMatching("version.properties") {
+        expand(version: version)
+    }
+}
+
+test {
+    useJUnitPlatform()
+}

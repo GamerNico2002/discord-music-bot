@@ -1,0 +1,224 @@
+package bot;
+
+import club.minnced.discord.jdave.interop.JDaveSessionFactory;
+import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.JDABuilder;
+import net.dv8tion.jda.api.OnlineStatus;
+import net.dv8tion.jda.api.audio.AudioModuleConfig;
+import net.dv8tion.jda.api.entities.Activity;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.events.guild.GuildJoinEvent;
+import net.dv8tion.jda.api.events.guild.GuildLeaveEvent;
+import net.dv8tion.jda.api.events.guild.GuildReadyEvent;
+import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
+import net.dv8tion.jda.api.interactions.commands.build.CommandData;
+import net.dv8tion.jda.api.interactions.commands.build.Commands;
+import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
+import net.dv8tion.jda.api.requests.GatewayIntent;
+import net.dv8tion.jda.api.utils.cache.CacheFlag;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.time.Instant;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+public class MusicBot extends ListenerAdapter {
+
+    private static final Logger log = LoggerFactory.getLogger(MusicBot.class);
+
+    public static final Properties CONFIG = new Properties();
+    public static final Instant START_TIME = Instant.now();
+    public static JDA JDA;
+
+    private final Set<Long> guildsAtStartup = new HashSet<>();
+    private final AtomicBoolean ready = new AtomicBoolean(false);
+    private static BotContext botContext;
+
+    private static final List<CommandData> COMMANDS = List.of(
+            Commands.slash("play", "Spielt einen Song von YouTube, SoundCloud oder Spotify")
+                    .addOption(OptionType.STRING, "query", "URL oder Suchbegriff", true),
+            Commands.slash("skip", "Ueberspringt den aktuellen Song"),
+            Commands.slash("stop", "Stoppt die Musik und leert die Queue"),
+            Commands.slash("pause", "Pausiert den aktuellen Song"),
+            Commands.slash("resume", "Setzt den pausierten Song fort"),
+            Commands.slash("queue", "Zeigt die aktuelle Warteschlange"),
+            Commands.slash("playing", "Zeigt den aktuell spielenden Song"),
+            Commands.slash("volume", "Setzt die Lautstaerke (0-100)")
+                    .addOption(OptionType.INTEGER, "vol", "Lautstaerke 0-100", true),
+            Commands.slash("join", "Bot betritt deinen Voice-Channel"),
+            Commands.slash("leave", "Bot verlaesst den Voice-Channel"),
+            Commands.slash("repeat", "Repeat-Modus: off, track oder queue")
+                    .addOption(OptionType.STRING, "mode", "off / track / queue", true),
+            Commands.slash("shuffle", "Mischt die aktuelle Queue"),
+            Commands.slash("radio", "Spielt einen Radio-Sender")
+                    .addOption(OptionType.STRING, "sender", "Sender waehlen", true, true),
+            Commands.slash("seek", "Springt zu einer Position im Song")
+                    .addOption(OptionType.STRING, "time", "Zeitposition (z.B. 1:30 oder 90)", true),
+            Commands.slash("remove", "Entfernt einen Song aus der Queue")
+                    .addOption(OptionType.INTEGER, "position", "Position in der Queue (1, 2, 3...)", true),
+            Commands.slash("clear", "Leert die Warteschlange ohne den aktuellen Song zu stoppen"),
+            Commands.slash("move", "Verschiebt einen Song in der Queue")
+                    .addOption(OptionType.INTEGER, "von", "Aktuelle Position (1, 2, 3...)", true)
+                    .addOption(OptionType.INTEGER, "nach", "Neue Position (1, 2, 3...)", true),
+            Commands.slash("skipto", "Springt direkt zu einem Song in der Queue")
+                    .addOption(OptionType.INTEGER, "position", "Position in der Queue", true),
+            Commands.slash("save", "Schickt dir den aktuellen Song per DM"),
+            Commands.slash("nonstop", "Nonstop-Modus \u2014 random Tekk, Techno, Uptempo & Co.")
+                    .addOptions(new net.dv8tion.jda.api.interactions.commands.build.OptionData(OptionType.STRING, "modus", "Optional: auto-on / auto-off", false)
+                            .addChoice("auto: an (Standard)", "auto-on")
+                            .addChoice("auto: aus", "auto-off")),
+            Commands.slash("filter", "Audio-Filter / Equalizer Preset")
+                    .addOption(OptionType.STRING, "preset", "Filter waehlen", true, true),
+            Commands.slash("invite", "Einladungslink fuer den Bot"),
+            Commands.slash("help", "Erhalte Hilfe"),
+            Commands.slash("info", "Infos ueber den Bot"),
+            Commands.slash("ping", "Zeigt die Latenz des Bots"),
+            Commands.slash("dcleave", "Bot verlaesst einen ausgewaehlten Discord-Server (nur Bot-Owner)")
+                    .addOption(OptionType.STRING, "server", "Discord-Server auswaehlen", true, true),
+            Commands.slash("language", "Sprache des Bots aendern / Change bot language")
+                    .addOptions(new net.dv8tion.jda.api.interactions.commands.build.OptionData(OptionType.STRING, "code", "Sprache / Language", false)
+                            .addChoice("\uD83C\uDDE9\uD83C\uDDEA Deutsch", "de")
+                            .addChoice("\uD83C\uDDEC\uD83C\uDDE7 English", "en")
+                            .addChoice("\uD83C\uDDEB\uD83C\uDDF7 Fran\u00e7ais", "fr")
+                            .addChoice("\uD83C\uDDEA\uD83C\uDDF8 Espa\u00f1ol", "es")
+                            .addChoice("\uD83C\uDDEE\uD83C\uDDF9 Italiano", "it")),
+            Commands.slash("playlist", "Playlists verwalten / Manage your playlists")
+                    .addSubcommands(
+                            new SubcommandData("create", "Erstelle eine neue Playlist / Create a new playlist")
+                                    .addOption(OptionType.STRING, "name", "Playlist-Name", true),
+                            new SubcommandData("add", "Fuege einen Song zur Playlist hinzu / Add a song to a playlist")
+                                    .addOption(OptionType.STRING, "name", "Playlist-Name", true, true)
+                                    .addOption(OptionType.STRING, "query", "URL oder Suchbegriff", true),
+                            new SubcommandData("remove", "Entferne einen Song aus der Playlist / Remove a song from a playlist")
+                                    .addOption(OptionType.STRING, "name", "Playlist-Name", true, true)
+                                    .addOption(OptionType.INTEGER, "index", "Song-Nummer zum Entfernen", true),
+                            new SubcommandData("delete", "Loesche eine Playlist / Delete a playlist")
+                                    .addOption(OptionType.STRING, "name", "Playlist-Name", true, true),
+                            new SubcommandData("play", "Spiele eine Playlist / Play a playlist")
+                                    .addOption(OptionType.STRING, "name", "Playlist-Name", true, true),
+                            new SubcommandData("view", "Zeige die Songs einer Playlist / View songs in a playlist")
+                                    .addOption(OptionType.STRING, "name", "Playlist-Name", true, true)
+                    )
+    );
+
+    @Override
+    public void onGuildReady(GuildReadyEvent event) {
+        long gid = event.getGuild().getIdLong();
+        guildsAtStartup.add(gid);
+        ready.set(true);
+    }
+
+    @Override
+    public void onGuildJoin(GuildJoinEvent event) {
+        guildsAtStartup.add(event.getGuild().getIdLong());
+        registerForGuild(event.getGuild());
+    }
+
+    @Override
+    public void onGuildLeave(GuildLeaveEvent event) {
+        long guildId = event.getGuild().getIdLong();
+        if (ready.get() && guildsAtStartup.contains(guildId)) {
+            PlaylistManager.deleteGuild(guildId);
+            log.info("[Playlist] Guild-Daten geloescht fuer: {}", guildId);
+        } else {
+            log.info("[Playlist] GuildLeave ignoriert (Startup-Guard): {}", guildId);
+        }
+        guildsAtStartup.remove(guildId);
+    }
+
+    private static void registerForGuild(Guild guild) {
+        guild.updateCommands().addCommands(COMMANDS).queue(
+                cmds -> log.info("Commands registriert fuer: {}", guild.getName()),
+                err -> log.error("Fehler bei {}: {}", guild.getName(), err.getMessage())
+        );
+    }
+
+    public static void main(String[] args) throws InterruptedException {
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            log.info("Shutdown-Hook: Bot wird heruntergefahren...");
+            if (botContext != null) {
+                botContext.npScheduler.shutdownNow();
+                botContext.playerManager.shutdown();
+            }
+            if (JDA != null) {
+                JDA.shutdownNow();
+                try { JDA.awaitShutdown(java.time.Duration.ofSeconds(5)); } catch (Exception ignored) {}
+            }
+            log.info("Shutdown abgeschlossen.");
+        }));
+
+        try (var in = new FileInputStream("config.properties")) {
+            CONFIG.load(in);
+        } catch (IOException e) {
+            log.error("config.properties nicht gefunden! Erstelle die Datei neben der JAR.");
+            System.exit(1);
+        }
+
+        String token = CONFIG.getProperty("bot.token");
+        if (token == null || token.isBlank() || token.equals("DEIN_TOKEN_HIER")) {
+            log.error("Trage deinen Bot-Token in config.properties ein!");
+            System.exit(1);
+        }
+
+        botContext = new BotContext();
+
+        JDA = JDABuilder.createDefault(token)
+                .enableIntents(
+                        GatewayIntent.GUILD_VOICE_STATES,
+                        GatewayIntent.GUILD_MESSAGES
+                )
+                .enableCache(CacheFlag.VOICE_STATE, CacheFlag.MEMBER_OVERRIDES)
+                .setAudioModuleConfig(new AudioModuleConfig()
+                        .withDaveSessionFactory(new JDaveSessionFactory()))
+                .setStatus(OnlineStatus.ONLINE)
+                .setActivity(Activity.playing("Starte..."))
+                .addEventListeners(new CommandHandler(botContext), new MusicBot())
+                .build();
+
+        JDA.awaitReady();
+        log.info("Bot ist verbunden! Registriere Slash-Commands...");
+
+        for (Guild guild : JDA.getGuilds()) {
+            registerForGuild(guild);
+        }
+
+        var scheduler = Executors.newSingleThreadScheduledExecutor();
+        final int commandCount = COMMANDS.size();
+        final String[] statusMessages = {
+                "mit {members} Membern auf {servers} Servern",
+                "mit /help",
+                "mit " + commandCount + " Commands"
+        };
+        final int[] index = {0};
+        scheduler.scheduleAtFixedRate(() -> {
+            try {
+                var guilds = JDA.getGuilds();
+                int servers = guilds.size();
+                int members = guilds.stream()
+                        .mapToInt(Guild::getMemberCount)
+                        .sum();
+                String msg = statusMessages[index[0] % statusMessages.length]
+                        .replace("{members}", String.valueOf(members))
+                        .replace("{servers}", String.valueOf(servers));
+                JDA.getPresence().setActivity(
+                        Activity.streaming(msg, "https://www.twitch.tv/placeholder"));
+                index[0]++;
+            } catch (Exception e) {
+                log.error("Status-Update Fehler", e);
+            }
+        }, 0, 15, TimeUnit.SECONDS);
+
+        log.info("Music Bot ist online!");
+
+        new UpdateChecker().start();
+    }
+}
