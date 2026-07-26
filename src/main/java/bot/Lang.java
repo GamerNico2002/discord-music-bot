@@ -249,6 +249,9 @@ public final class Lang {
         put("de", "playlist.songs", "**Playlist: {0}** ({1} Songs)");
         put("de", "playlist.playing", "Spiele Playlist **{0}** ({1} Songs)");
         put("de", "playlist.playing.started", "Spiele Playlist **{0}** ({1} Songs)");
+        put("de", "update.title", "\uD83D\uDD04 Update verfuegbar!");
+        put("de", "update.body", "Eine neue Version des Music Bots ist verfuegbar!\n\n**Aktuelle Version:** {0}\n**Neue Version:** {1}\n\nLade die neueste Version hier herunter:");
+        put("de", "update.download", "\uD83D\uDCE6 Herunterladen");
 
         // ===== ENGLISH =====
         put("en", "voice.required", "You must be in a voice channel!");
@@ -400,6 +403,9 @@ public final class Lang {
         put("en", "playlist.removed", "Song **{0}** removed from playlist **{1}**");
         put("en", "playlist.songs", "**Playlist: {0}** ({1} songs)");
         put("en", "playlist.playing.started", "Playing playlist **{0}** ({1} songs)");
+        put("en", "update.title", "\uD83D\uDD04 Update available!");
+        put("en", "update.body", "A new version of the Music Bot is available!\n\n**Current version:** {0}\n**New version:** {1}\n\nDownload the latest version here:");
+        put("en", "update.download", "\uD83D\uDCE6 Download");
 
         // ===== FRAN\u00c7AIS =====
         put("fr", "voice.required", "Tu dois \u00eatre dans un salon vocal !");
@@ -551,6 +557,9 @@ public final class Lang {
         put("fr", "playlist.removed", "Morceau **{0}** retir\u00e9 de la playlist **{1}**");
         put("fr", "playlist.songs", "**Playlist : {0}** ({1} morceaux)");
         put("fr", "playlist.playing.started", "Lecture de la playlist **{0}** ({1} morceaux)");
+        put("fr", "update.title", "\uD83D\uDD04 Mise \u00e0 jour disponible !");
+        put("fr", "update.body", "Une nouvelle version du Music Bot est disponible !\n\n**Version actuelle :** {0}\n**Nouvelle version :** {1}\n\nT\u00e9l\u00e9chargez la derni\u00e8re version ici :");
+        put("fr", "update.download", "\uD83D\uDCE6 T\u00e9l\u00e9charger");
 
         // ===== ESPA\u00d1OL =====
         put("es", "voice.required", "\u00a1Debes estar en un canal de voz!");
@@ -702,6 +711,9 @@ public final class Lang {
         put("es", "playlist.removed", "Canci\u00f3n **{0}** eliminada de la playlist **{1}**");
         put("es", "playlist.songs", "**Playlist: {0}** ({1} canciones)");
         put("es", "playlist.playing.started", "Reproduciendo playlist **{0}** ({1} canciones)");
+        put("es", "update.title", "\uD83D\uDD04 \u00a1Actualizaci\u00f3n disponible!");
+        put("es", "update.body", "\u00a1Hay una nueva versi\u00f3n del Music Bot disponible!\n\n**Versi\u00f3n actual:** {0}\n**Nueva versi\u00f3n:** {1}\n\nDescarga la \u00faltima versi\u00f3n aqu\u00ed:");
+        put("es", "update.download", "\uD83D\uDCE6 Descargar");
 
         // ===== ITALIANO =====
         put("it", "voice.required", "Devi essere in un canale vocale!");
@@ -853,5 +865,8 @@ public final class Lang {
         put("it", "playlist.removed", "Brano **{0}** rimosso dalla playlist **{1}**");
         put("it", "playlist.songs", "**Playlist: {0}** ({1} brani)");
         put("it", "playlist.playing.started", "Riproduco la playlist **{0}** ({1} brani)");
+        put("it", "update.title", "\uD83D\uDD04 Aggiornamento disponibile!");
+        put("it", "update.body", "\u00c8 disponibile una nuova versione del Music Bot!\n\n**Versione attuale:** {0}\n**Nuova versione:** {1}\n\nScarica l''ultima versione qui:");
+        put("it", "update.download", "\uD83D\uDCE6 Scarica");
     }
 }

@@ -201,5 +201,7 @@ new SubcommandData("add", "Fuege einen Song zur Playlist hinzu / Add a song to a
         }, 0, 15, TimeUnit.SECONDS);
 
         System.out.println("Music Bot ist online!");
+
+        new UpdateChecker().start();
     }
 }
