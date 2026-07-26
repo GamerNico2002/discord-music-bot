@@ -31,6 +31,7 @@ public class PlaylistHandler {
         this.ctx = ctx;
     }
 
+    /** Handles the /playlist command: dispatches to create, add, remove, delete, view, or play subcommands. */
     public void handle(SlashCommandInteractionEvent event) {
         if (event.getGuild() == null) return;
         long gid = event.getGuild().getIdLong();
@@ -374,6 +375,7 @@ public class PlaylistHandler {
         }
     }
 
+    /** Provides autocomplete suggestions for playlist names matching the user's input. */
     public void handleAutocomplete(CommandAutoCompleteInteractionEvent event) {
         String input = event.getFocusedOption().getValue().toLowerCase();
         List<Command.Choice> choices = new ArrayList<>();

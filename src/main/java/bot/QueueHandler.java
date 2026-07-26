@@ -32,6 +32,7 @@ public class QueueHandler {
         this.ctx = ctx;
     }
 
+    /** Handles the /queue command: displays the current track queue with paginated navigation buttons. */
     public void handleQueue(SlashCommandInteractionEvent event) {
         Guild guild = event.getGuild();
         if (guild == null) return;
@@ -51,6 +52,17 @@ public class QueueHandler {
                 .queue();
     }
 
+    /**
+     * Builds the embed for a specific page of the queue view.
+     *
+     * @param gid        the guild ID for localized strings
+     * @param tracks     the full track list snapshot
+     * @param current    the currently playing track, or {@code null}
+     * @param manager    the guild's music manager
+     * @param page       the zero-based page index
+     * @param totalPages total number of pages
+     * @return a configured {@link EmbedBuilder}
+     */
     public EmbedBuilder buildQueueEmbed(long gid, List<AudioTrack> tracks, AudioTrack current,
                                         GuildMusicManager manager, int page, int totalPages) {
         StringBuilder sb = new StringBuilder();
@@ -102,6 +114,7 @@ public class QueueHandler {
         );
     }
 
+    /** Handles the /playing command: shows the currently playing track with live progress and playback controls. */
     public void handleNowPlaying(SlashCommandInteractionEvent event) {
         Guild guild = event.getGuild();
         if (guild == null) return;
@@ -125,6 +138,7 @@ public class QueueHandler {
                 .queue(hook -> startNpAutoUpdate(guildId, manager, hook));
     }
 
+    /** Starts a scheduled task that edits the now-playing embed every 3 seconds with updated progress. */
     public void startNpAutoUpdate(long guildId, GuildMusicManager manager, InteractionHook hook) {
         ScheduledFuture<?> oldTask = ctx.npUpdateTasks.remove(guildId);
         if (oldTask != null) oldTask.cancel(false);
@@ -145,6 +159,7 @@ public class QueueHandler {
         ctx.npUpdateTasks.put(guildId, task);
     }
 
+    /** Cancels any active now-playing auto-update task for the given guild. */
     public void cancelNpUpdate(long guildId) {
         ScheduledFuture<?> task = ctx.npUpdateTasks.remove(guildId);
         if (task != null) task.cancel(false);
@@ -199,6 +214,7 @@ public class QueueHandler {
         );
     }
 
+    /** Handles button interactions for now-playing controls (restart, pause, skip, stop) and queue pagination. */
     public void onButtonInteraction(ButtonInteractionEvent event) {
         if (event.getGuild() == null) return;
         String id = event.getComponentId();
@@ -279,6 +295,7 @@ public class QueueHandler {
                 .queue();
     }
 
+    /** Handles the /move command: reorders a track from one position to another within the queue. */
     public void handleMove(SlashCommandInteractionEvent event) {
         Guild guild = event.getGuild();
         if (guild == null) return;
@@ -312,6 +329,7 @@ public class QueueHandler {
         }
     }
 
+    /** Handles the /remove command: removes a track at the specified position from the queue. */
     public void handleRemove(SlashCommandInteractionEvent event) {
         Guild guild = event.getGuild();
         if (guild == null) return;
@@ -342,6 +360,7 @@ public class QueueHandler {
         }
     }
 
+    /** Handles the /clear command: removes all tracks from the queue without stopping playback. */
     public void handleClear(SlashCommandInteractionEvent event) {
         Guild guild = event.getGuild();
         if (guild == null) return;
@@ -358,6 +377,7 @@ public class QueueHandler {
                 .setColor(0xED4245).build()).queue();
     }
 
+    /** Handles the /shuffle command: randomizes the order of all tracks in the queue. */
     public void handleShuffle(SlashCommandInteractionEvent event) {
         Guild guild = event.getGuild();
         if (guild == null) return;
@@ -373,6 +393,7 @@ public class QueueHandler {
                 .setColor(0x5865F2).build()).queue();
     }
 
+    /** Handles the /repeat command: sets the repeat mode to off, track, or queue. */
     public void handleRepeat(SlashCommandInteractionEvent event) {
         Guild guild = event.getGuild();
         if (guild == null) return;
@@ -400,6 +421,7 @@ public class QueueHandler {
         }
     }
 
+    /** Handles the /skipto command: skips directly to the track at the given queue position. */
     public void handleSkipTo(SlashCommandInteractionEvent event) {
         Guild guild = event.getGuild();
         if (guild == null) return;
@@ -430,6 +452,7 @@ public class QueueHandler {
         }
     }
 
+    /** Handles the /save command: sends the currently playing track info to the user via DM. */
     public void handleSave(SlashCommandInteractionEvent event) {
         Guild guild = event.getGuild();
         if (guild == null) return;
@@ -458,6 +481,7 @@ public class QueueHandler {
         );
     }
 
+    /** Handles the /volume command: sets the playback volume (0-100) and shows a visual bar. */
     public void handleVolume(SlashCommandInteractionEvent event) {
         Guild guild = event.getGuild();
         if (guild == null) return;

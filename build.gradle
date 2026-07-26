@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'bot'
-version = '2.6'
+version = '2.6.1'
 java {
     sourceCompatibility = JavaVersion.toVersion(25)
     targetCompatibility = JavaVersion.toVersion(25)
@@ -37,6 +37,8 @@ dependencies {
     implementation 'club.minnced:jdave-native-linux-x86-64:0.1.8'
 
     testImplementation 'org.junit.jupiter:junit-jupiter:5.11.3'
+    testImplementation 'org.mockito:mockito-core:5.14.2'
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.14.2'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 

@@ -13,6 +13,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
+/** Handles /help, /info, /ping, /invite, /dcleave and /language slash commands. */
 public class InfoHandler {
 
     private static final Logger log = LoggerFactory.getLogger(InfoHandler.class);
@@ -23,6 +24,7 @@ public class InfoHandler {
         this.ctx = ctx;
     }
 
+    /** Handles the /help command: displays a categorized list of all available commands. */
     public void handleHelp(SlashCommandInteractionEvent event) {
         long gid = event.getGuild().getIdLong();
         EmbedBuilder embed = new EmbedBuilder()
@@ -36,6 +38,7 @@ public class InfoHandler {
         event.replyEmbeds(embed.build()).queue();
     }
 
+    /** Handles the /info command: shows bot uptime, server/member counts, CPU, and memory stats. */
     public void handleInfo(SlashCommandInteractionEvent event) {
         long gid = event.getGuild().getIdLong();
 
@@ -103,6 +106,7 @@ public class InfoHandler {
         event.replyEmbeds(embed.build()).queue();
     }
 
+    /** Handles the /ping command: shows the current gateway WebSocket latency. */
     public void handlePing(SlashCommandInteractionEvent event) {
         long gid = event.getGuild().getIdLong();
         long gatewayPing = event.getJDA().getGatewayPing();
@@ -113,6 +117,7 @@ public class InfoHandler {
         event.replyEmbeds(embed.build()).queue();
     }
 
+    /** Handles the /invite command: sends a bot invite link with required permissions. */
     public void handleInvite(SlashCommandInteractionEvent event) {
         long gid = event.getGuild().getIdLong();
         String botId = event.getJDA().getSelfUser().getId();
@@ -125,6 +130,7 @@ public class InfoHandler {
         event.replyEmbeds(embed.build()).queue();
     }
 
+    /** Handles the /dcleave command: forces the bot to leave a specified server (owner-only). */
     public void handleDcLeave(SlashCommandInteractionEvent event) {
         long gid = event.getGuild().getIdLong();
         if (ctx.ownerId.isEmpty() || !event.getUser().getId().equals(ctx.ownerId)) {
@@ -155,6 +161,7 @@ public class InfoHandler {
         );
     }
 
+    /** Handles the /language command: changes the bot's response language for the current guild. */
     public void handleLanguage(SlashCommandInteractionEvent event) {
         long guildId = event.getGuild().getIdLong();
         var codeOpt = event.getOption("code");
@@ -183,6 +190,9 @@ public class InfoHandler {
                 .setColor(0x57F287).build()).queue();
     }
 
+    /**
+     * Formats a {@link Duration} as a human-readable uptime string like {@code "2d 5h 30m 12s"}.
+     */
     public String formatUptime(Duration uptime) {
         long days = uptime.toDays();
         long hours = uptime.toHoursPart();
@@ -195,6 +205,11 @@ public class InfoHandler {
         return sb.toString();
     }
 
+    /**
+     * Returns autocomplete choices for the /dcleave server parameter.
+     *
+     * @return up to 25 matching guild choices
+     */
     public List<Command.Choice> autocompleteDcLeave(CommandAutoCompleteInteractionEvent event, String input) {
         List<Command.Choice> choices = new ArrayList<>();
         for (Guild guild : event.getJDA().getGuilds()) {

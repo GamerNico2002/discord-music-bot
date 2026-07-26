@@ -18,6 +18,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/** Handles the /radio slash command, providing 23 pre-configured German and international radio stations. */
 public class RadioHandler {
 
     private static final Logger log = LoggerFactory.getLogger(RadioHandler.class);
@@ -55,6 +56,7 @@ public class RadioHandler {
         this.ctx = ctx;
     }
 
+    /** Handles the /radio command: loads and plays the selected radio stream. */
     public void handleRadio(SlashCommandInteractionEvent event) {
         long gid = event.getGuild().getIdLong();
         GuildVoiceState voiceState = event.getMember().getVoiceState();
@@ -115,6 +117,11 @@ public class RadioHandler {
         });
     }
 
+    /**
+     * Returns autocomplete choices for radio station names matching the user input.
+     *
+     * @return up to 25 matching station choices
+     */
     public List<Command.Choice> autocomplete(String input) {
         List<Command.Choice> choices = new ArrayList<>();
         for (Map.Entry<String, String[]> entry : RADIO_STATIONS.entrySet()) {

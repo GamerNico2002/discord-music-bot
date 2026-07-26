@@ -10,6 +10,7 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import java.util.ArrayList;
 import java.util.List;
 
+/** Central command router that dispatches slash commands, button interactions, and autocompletes to the appropriate handler. */
 public class CommandHandler extends ListenerAdapter {
 
     private final BotContext ctx;
@@ -32,6 +33,7 @@ public class CommandHandler extends ListenerAdapter {
         this.info = new InfoHandler(ctx);
     }
 
+    /** Routes incoming slash command interactions to the matching handler method. */
     @Override
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
         if (event.getGuild() == null) return;
@@ -68,12 +70,14 @@ public class CommandHandler extends ListenerAdapter {
         }
     }
 
+    /** Dispatches button interactions (queue pagination, now-playing controls) to the queue handler. */
     @Override
     public void onButtonInteraction(ButtonInteractionEvent event) {
         if (event.getGuild() == null) return;
         queue.onButtonInteraction(event);
     }
 
+    /** Routes autocomplete requests for /radio, /filter, /dcleave and /playlist to the matching handler. */
     @Override
     public void onCommandAutoCompleteInteraction(CommandAutoCompleteInteractionEvent event) {
         if (event.getName().equals("playlist") && event.getFocusedOption().getName().equals("name")) {
@@ -95,6 +99,7 @@ public class CommandHandler extends ListenerAdapter {
         event.replyChoices(choices).queue();
     }
 
+    /** Forwards voice-channel update events to the voice handler for auto-reconnect logic. */
     @Override
     public void onGuildVoiceUpdate(GuildVoiceUpdateEvent event) {
         voice.onGuildVoiceUpdate(event);

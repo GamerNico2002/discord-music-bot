@@ -11,6 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/** Handles the /filter slash command, applying audio equalizer presets (bassboost, treble, pop, rock). */
 public class FilterHandler {
 
     private static final Logger log = LoggerFactory.getLogger(FilterHandler.class);
@@ -29,6 +30,7 @@ public class FilterHandler {
         this.ctx = ctx;
     }
 
+    /** Handles the /filter command: applies the selected audio preset to the guild's player. */
     public void handleFilter(SlashCommandInteractionEvent event) {
         long gid = event.getGuild().getIdLong();
         GuildMusicManager manager = ctx.getGuildMusic(event.getGuild());
@@ -55,6 +57,11 @@ public class FilterHandler {
                 .setColor(0x5865F2).build()).queue();
     }
 
+    /**
+     * Returns autocomplete choices for filter presets matching the user input.
+     *
+     * @return up to 25 matching preset choices
+     */
     public List<Command.Choice> autocomplete(String input) {
         List<Command.Choice> choices = new ArrayList<>();
         for (Map.Entry<String, String> entry : FILTER_PRESETS.entrySet()) {

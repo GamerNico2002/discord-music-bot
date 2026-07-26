@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.TimeUnit;
 
+/** Handles /play, /skip, /stop, /pause, /resume and /seek slash commands. */
 public class PlaybackHandler {
 
     private static final Logger log = LoggerFactory.getLogger(PlaybackHandler.class);
@@ -26,6 +27,7 @@ public class PlaybackHandler {
         this.ctx = ctx;
     }
 
+    /** Handles the /play command: loads a track or Spotify URL and starts playback. */
     public void handlePlay(SlashCommandInteractionEvent event) {
         long gid = event.getGuild().getIdLong();
         GuildVoiceState voiceState = event.getMember().getVoiceState();
@@ -234,6 +236,7 @@ public class PlaybackHandler {
         });
     }
 
+    /** Handles the /skip command: skips the current track and shows what plays next. */
     public void handleSkip(SlashCommandInteractionEvent event) {
         long gid = event.getGuild().getIdLong();
         GuildMusicManager manager = ctx.getGuildMusic(event.getGuild());
@@ -251,6 +254,7 @@ public class PlaybackHandler {
         event.replyEmbeds(embed.build()).queue();
     }
 
+    /** Handles the /stop command: stops playback, clears the queue, and schedules auto-nonstop. */
     public void handleStop(SlashCommandInteractionEvent event) {
         long guildId = event.getGuild().getIdLong();
         GuildMusicManager manager = ctx.getGuildMusic(event.getGuild());
@@ -263,6 +267,7 @@ public class PlaybackHandler {
                 .setColor(0xED4245).build()).queue();
     }
 
+    /** Handles the /pause command: pauses the currently playing track. */
     public void handlePause(SlashCommandInteractionEvent event) {
         long gid = event.getGuild().getIdLong();
         GuildMusicManager manager = ctx.getGuildMusic(event.getGuild());
@@ -273,6 +278,7 @@ public class PlaybackHandler {
         event.replyEmbeds(new EmbedBuilder().setDescription(desc).setColor(0xFEE75C).build()).queue();
     }
 
+    /** Handles the /resume command: resumes a paused track. */
     public void handleResume(SlashCommandInteractionEvent event) {
         long gid = event.getGuild().getIdLong();
         GuildMusicManager manager = ctx.getGuildMusic(event.getGuild());
@@ -283,6 +289,7 @@ public class PlaybackHandler {
         event.replyEmbeds(new EmbedBuilder().setDescription(desc).setColor(0x57F287).build()).queue();
     }
 
+    /** Handles the /seek command: jumps to the specified position within the current track. */
     public void handleSeek(SlashCommandInteractionEvent event) {
         long gid = event.getGuild().getIdLong();
         GuildMusicManager manager = ctx.getGuildMusic(event.getGuild());

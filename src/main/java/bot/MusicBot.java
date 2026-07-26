@@ -31,6 +31,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+/** Main entry point for the Discord music bot: loads config, builds the JDA instance, and registers all slash commands. */
 public class MusicBot extends ListenerAdapter {
 
     private static final Logger log = LoggerFactory.getLogger(MusicBot.class);
@@ -110,6 +111,7 @@ public class MusicBot extends ListenerAdapter {
                     )
     );
 
+    /** Called when a guild finishes caching; marks the bot as ready and records the guild. */
     @Override
     public void onGuildReady(GuildReadyEvent event) {
         long gid = event.getGuild().getIdLong();
@@ -117,12 +119,14 @@ public class MusicBot extends ListenerAdapter {
         ready.set(true);
     }
 
+    /** Registers slash commands for a newly joined guild. */
     @Override
     public void onGuildJoin(GuildJoinEvent event) {
         guildsAtStartup.add(event.getGuild().getIdLong());
         registerForGuild(event.getGuild());
     }
 
+    /** Deletes persisted playlist data when the bot is removed from a guild after startup. */
     @Override
     public void onGuildLeave(GuildLeaveEvent event) {
         long guildId = event.getGuild().getIdLong();
@@ -142,6 +146,7 @@ public class MusicBot extends ListenerAdapter {
         );
     }
 
+    /** Application entry point: loads config, initializes {@link BotContext}, builds JDA, and starts the update checker. */
     public static void main(String[] args) throws InterruptedException {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             log.info("Shutdown-Hook: Bot wird heruntergefahren...");

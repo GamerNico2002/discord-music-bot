@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.*;
 
+/** Shared state container holding all per-guild music managers, scheduled tasks, and bot-wide resources. */
 public class BotContext {
 
     private static final Logger log = LoggerFactory.getLogger(BotContext.class);
@@ -39,6 +40,7 @@ public class BotContext {
     public final String[] nonstopModifiers;
     public final java.util.Random nonstopRandom = new java.util.Random();
 
+    /** Initializes the player manager, loads configuration, and registers audio sources. */
     public BotContext() {
         var cfg = MusicBot.CONFIG;
         spotify = new SpotifyResolver(
@@ -75,6 +77,12 @@ public class BotContext {
         return result;
     }
 
+    /**
+     * Returns the {@link GuildMusicManager} for the given guild, creating one if it doesn't exist yet.
+     *
+     * @param guild the guild to get the music manager for
+     * @return the guild's music manager, never {@code null}
+     */
     public GuildMusicManager getGuildMusic(Guild guild) {
         return musicManagers.computeIfAbsent(guild.getIdLong(), id -> {
             var manager = new GuildMusicManager(playerManager);
@@ -85,6 +93,9 @@ public class BotContext {
         });
     }
 
+    /**
+     * Removes all bot state associated with the given guild (player, scheduler, timers, hooks).
+     */
     public void cleanupGuild(long guildId) {
         log.info("[Cleanup] Guild {} - alle Daten entfernen", guildId);
         NonstopHandler.cancelAutoNonstop(this, guildId);
@@ -100,6 +111,15 @@ public class BotContext {
         npHooks.remove(guildId);
     }
 
+    /**
+     * Connects to the given voice channel and starts playing or queues the track.
+     *
+     * @param guild       the guild to connect in
+     * @param channel     the voice channel to join
+     * @param musicManager the guild's music manager
+     * @param track       the track to play or queue
+     * @param forcePlay   if {@code true}, immediately replaces the current track
+     */
     public void connectAndPlay(Guild guild, AudioChannelUnion channel, GuildMusicManager musicManager,
                                AudioTrack track, boolean forcePlay) {
         long guildId = guild.getIdLong();
@@ -119,17 +139,24 @@ public class BotContext {
         }
     }
 
+    /** Overload of {@link #connectAndPlay(Guild, AudioChannelUnion, GuildMusicManager, AudioTrack, boolean)} with {@code forcePlay = false}. */
     public void connectAndPlay(Guild guild, AudioChannelUnion channel, GuildMusicManager musicManager,
                                AudioTrack track) {
         connectAndPlay(guild, channel, musicManager, track, false);
     }
 
+    /**
+     * Formats milliseconds as {@code "mm:ss"}.
+     */
     public String formatTime(long ms) {
         long mins = ms / 60000;
         long secs = (ms % 60000) / 1000;
         return mins + ":" + String.format("%02d", secs);
     }
 
+    /**
+     * Formats milliseconds in a human-readable form ({@code "Xh Ym"} or {@code "Xm Ys"}).
+     */
     public String formatTimeLong(long ms) {
         long hours = ms / 3600000;
         long mins = (ms % 3600000) / 60000;
@@ -138,6 +165,11 @@ public class BotContext {
         return mins + "m " + secs + "s";
     }
 
+    /**
+     * Extracts the YouTube video ID from a standard YouTube URL.
+     *
+     * @return the video ID, or an empty string if not recognized
+     */
     public String extractVideoId(String url) {
         if (url == null) return "";
         if (url.contains("v=")) return url.substring(url.indexOf("v=") + 2).split("[&?]")[0];
@@ -145,12 +177,25 @@ public class BotContext {
         return "";
     }
 
+    /**
+     * Builds a text-based progress bar for the now-playing display.
+     *
+     * @param position current playback position in ms
+     * @param duration total track duration in ms
+     * @return a 20-character progress bar string
+     */
     public String buildProgressBar(long position, long duration) {
         int total = 20;
         int filled = duration > 0 ? (int) (position * total / duration) : 0;
         return "\u25AC".repeat(filled) + "\uD83D\uDD18" + "\u25AC".repeat(Math.max(0, total - filled - 1));
     }
 
+    /**
+     * Builds a text-based volume bar for the volume display.
+     *
+     * @param vol volume level (0-100)
+     * @return a 20-character volume bar string
+     */
     public String buildVolumeBar(int vol) {
         int filled = vol / 5;
         return "\u25AC".repeat(filled) + "\uD83D\uDD18" + "\u25AC".repeat(20 - filled);

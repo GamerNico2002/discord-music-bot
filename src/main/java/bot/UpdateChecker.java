@@ -20,6 +20,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+/** Periodically checks the GitHub releases API for new bot versions and notifies guilds via embed messages. */
 public class UpdateChecker {
 
     private static final Logger log = LoggerFactory.getLogger(UpdateChecker.class);
@@ -35,6 +36,7 @@ public class UpdateChecker {
             .build();
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
+    /** Starts the periodic update check running every {@value #CHECK_INTERVAL_HOURS} hours after an initial 30-second delay. */
     public void start() {
         scheduler.scheduleAtFixedRate(this::check, 30, CHECK_INTERVAL_HOURS * 60 * 60, TimeUnit.SECONDS);
         log.info("[UpdateChecker] Gestartet (alle {}h)", CHECK_INTERVAL_HOURS);

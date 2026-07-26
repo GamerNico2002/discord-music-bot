@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+/** JSON-based persistence layer for per-user, per-guild playlists stored under the {@code playlists/} directory. */
 public class PlaylistManager {
 
     private static final Logger log = LoggerFactory.getLogger(PlaylistManager.class);
@@ -25,6 +26,9 @@ public class PlaylistManager {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Type PLAYLIST_LIST_TYPE = new TypeToken<List<Playlist>>(){}.getType();
 
+    /**
+     * Loads all playlists for the given guild and user, migrating from the legacy {@code .dat} format if necessary.
+     */
     public static List<Playlist> load(long guildId, long userId) {
         Path file = getFile(guildId, userId, ".json");
         if (!Files.exists(file)) {
@@ -43,6 +47,7 @@ public class PlaylistManager {
         }
     }
 
+    /** Saves the given list of playlists to disk for the specified guild and user. */
     public static void save(long guildId, long userId, List<Playlist> playlists) {
         try {
             Files.createDirectories(getDir(guildId, userId));
@@ -55,6 +60,7 @@ public class PlaylistManager {
         }
     }
 
+    /** Deletes both the JSON and legacy {@code .dat} playlist files for the given guild and user. */
     public static void deleteAll(long guildId, long userId) {
         try {
             Path jsonFile = getFile(guildId, userId, ".json");
@@ -74,6 +80,7 @@ public class PlaylistManager {
         }
     }
 
+    /** Recursively deletes all playlist data for an entire guild. */
     public static void deleteGuild(long guildId) {
         Path dir = getGuildDir(guildId);
         try {
@@ -88,10 +95,18 @@ public class PlaylistManager {
         }
     }
 
+    /**
+     * Returns whether the user can create another playlist (has not reached {@value #MAX_PLAYLISTS}).
+     */
     public static boolean canCreate(long guildId, long userId) {
         return load(guildId, userId).size() < MAX_PLAYLISTS;
     }
 
+    /**
+     * Finds a playlist by name (case-insensitive) within the given list.
+     *
+     * @return the matching playlist, or {@code null} if not found
+     */
     public static Playlist find(List<Playlist> playlists, String name) {
         for (Playlist pl : playlists) {
             if (pl.getName().equalsIgnoreCase(name)) return pl;

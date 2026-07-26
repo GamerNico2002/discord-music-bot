@@ -11,6 +11,7 @@ import net.dv8tion.jda.api.managers.AudioManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/** Handles /join, /leave commands and automatic reconnection on voice-channel disconnects. */
 public class VoiceHandler {
 
     private static final Logger log = LoggerFactory.getLogger(VoiceHandler.class);
@@ -21,6 +22,7 @@ public class VoiceHandler {
         this.ctx = ctx;
     }
 
+    /** Handles the /join command: connects the bot to the invoker's current voice channel. */
     public void handleJoin(SlashCommandInteractionEvent event) {
         long gid = event.getGuild().getIdLong();
         GuildVoiceState voiceState = event.getMember().getVoiceState();
@@ -49,6 +51,7 @@ public class VoiceHandler {
                 .setColor(0x57F287).build()).queue();
     }
 
+    /** Handles the /leave command: stops playback, clears state, and disconnects from voice. */
     public void handleLeave(SlashCommandInteractionEvent event) {
         long guildId = event.getGuild().getIdLong();
         GuildMusicManager manager = ctx.getGuildMusic(event.getGuild());
@@ -66,6 +69,11 @@ public class VoiceHandler {
                 .setColor(0xED4245).build()).queue();
     }
 
+    /**
+     * Handles voice-channel update events for the bot itself.
+     * Attempts to auto-reconnect when the bot is moved or disconnected by another user,
+     * and cleans up state if the target channel no longer exists.
+     */
     public void onGuildVoiceUpdate(GuildVoiceUpdateEvent event) {
         Guild guild = event.getGuild();
         long guildId = guild.getIdLong();

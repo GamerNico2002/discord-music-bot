@@ -22,6 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+/** Manages the nonstop auto-play mode that continuously queues random tracks from configured genres. */
 public final class NonstopHandler {
 
     private static final Logger log = LoggerFactory.getLogger(NonstopHandler.class);
@@ -75,6 +76,10 @@ public final class NonstopHandler {
 
     private NonstopHandler() {}
 
+    /**
+     * Installs an idle callback on the scheduler that either queues the next nonstop track
+     * or schedules the auto-nonstop timer when the current track ends and the queue is empty.
+     */
     public static void installIdleHandler(BotContext ctx, long guildId, GuildMusicManager musicManager) {
         musicManager.scheduler.setOnIdle(() -> {
             if (ctx.nonstopGuilds.contains(guildId)) {
@@ -85,6 +90,10 @@ public final class NonstopHandler {
         });
     }
 
+    /**
+     * Schedules auto-nonstop mode to start after a 2-minute idle delay.
+     * If the bot is still idle when the timer fires, nonstop mode is activated automatically.
+     */
     public static void scheduleAutoNonstop(BotContext ctx, long guildId, GuildMusicManager musicManager) {
         cancelAutoNonstop(ctx, guildId);
         if (ctx.autoNonstopDisabledGuilds.contains(guildId)) {
@@ -114,15 +123,23 @@ public final class NonstopHandler {
         ctx.autoNonstopTimers.put(guildId, task);
     }
 
+    /** Cancels a pending auto-nonstop timer for the given guild. */
     public static void cancelAutoNonstop(BotContext ctx, long guildId) {
         ScheduledFuture<?> t = ctx.autoNonstopTimers.remove(guildId);
         if (t != null) t.cancel(false);
     }
 
+    /** Overload of {@link #queueRandomNonstopTrack(BotContext, long, GuildMusicManager, int)} starting at attempt 0. */
     public static void queueRandomNonstopTrack(BotContext ctx, long guildId, GuildMusicManager musicManager) {
         queueRandomNonstopTrack(ctx, guildId, musicManager, 0);
     }
 
+    /**
+     * Searches YouTube for a random track matching a randomly chosen genre and modifier,
+     * filters out duplicates and live recordings, then queues the result.
+     *
+     * @param attempt current retry attempt (stops after {@code MAX_RETRY_ATTEMPTS})
+     */
     public static void queueRandomNonstopTrack(BotContext ctx, long guildId, GuildMusicManager musicManager, int attempt) {
         if (attempt >= MAX_RETRY_ATTEMPTS) {
             log.warn("[Nonstop] Konnte nach {} Versuchen keinen Track laden - retry in 2 Min", MAX_RETRY_ATTEMPTS);
@@ -214,10 +231,16 @@ public final class NonstopHandler {
         }
     }
 
+    /** Clears the played-track history for the given guild. */
     public static void clearHistory(long guildId) {
         playedHistory.remove(guildId);
     }
 
+    /**
+     * Checks whether the given track is a stream, live recording, or concert.
+     *
+     * @return {@code true} if the track should be excluded from nonstop auto-play
+     */
     public static boolean isLiveOrRecording(AudioTrack track) {
         if (track.getInfo().isStream) return true;
         String title = track.getInfo().title;
@@ -227,6 +250,10 @@ public final class NonstopHandler {
                 || t.contains("concert") || t.contains("konzert");
     }
 
+    /**
+     * Handles the /nonstop slash command: toggles nonstop mode on/off
+     * or enables/disables the auto-nonstop timer.
+     */
     public static void handleNonstop(SlashCommandInteractionEvent event, BotContext ctx) {
         Guild guild = event.getGuild();
         long guildId = guild.getIdLong();

@@ -19,6 +19,7 @@ import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/** Resolves Spotify track, playlist, and album URLs into YouTube search queries via the Spotify Web API. */
 public class SpotifyResolver {
 
     private static final Logger log = LoggerFactory.getLogger(SpotifyResolver.class);
@@ -43,14 +44,23 @@ public class SpotifyResolver {
         this.clientSecret = clientSecret;
     }
 
+    /** Returns {@code true} if the given URL is a Spotify link (open.spotify.com or spotify.link). */
     public boolean isSpotifyUrl(String url) {
         return url.contains("open.spotify.com/") || url.contains("spotify.link/");
     }
 
+    /** Returns {@code true} if Spotify client credentials have been configured. */
     public boolean isConfigured() {
         return clientId != null && !clientId.isBlank() && clientSecret != null && !clientSecret.isBlank();
     }
 
+    /**
+     * Resolves a Spotify URL asynchronously, returning a list of YouTube search queries
+     * (e.g. {@code "ytsearch:Artist Name Song Title"}).
+     *
+     * @param inputUrl a Spotify track, playlist, or album URL
+     * @return a future completing with the resolved YouTube search query strings
+     */
     public CompletableFuture<List<String>> resolveAsync(String inputUrl) {
         return CompletableFuture.supplyAsync(() -> {
             List<String> queries = new ArrayList<>();
