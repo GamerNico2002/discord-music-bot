@@ -6,6 +6,13 @@ import com.sedmelluq.discord.lavaplayer.source.AudioSourceManagers;
 import com.sedmelluq.discord.lavaplayer.source.soundcloud.SoundCloudAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import dev.lavalink.youtube.YoutubeAudioSourceManager;
+import dev.lavalink.youtube.clients.AndroidVr;
+import dev.lavalink.youtube.clients.Music;
+import dev.lavalink.youtube.clients.MWeb;
+import dev.lavalink.youtube.clients.TvHtml5Simply;
+import dev.lavalink.youtube.clients.Web;
+import dev.lavalink.youtube.clients.WebEmbedded;
+import dev.lavalink.youtube.clients.skeleton.Client;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.channel.unions.AudioChannelUnion;
 import net.dv8tion.jda.api.interactions.InteractionHook;
@@ -14,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.*;
 
@@ -54,7 +62,7 @@ public class BotContext {
         playerManager.getConfiguration().setResamplingQuality(
                 com.sedmelluq.discord.lavaplayer.player.AudioConfiguration.ResamplingQuality.MEDIUM);
         playerManager.setFrameBufferDuration(300);
-        playerManager.registerSourceManager(new YoutubeAudioSourceManager());
+        playerManager.registerSourceManager(createYoutubeSource(cfg));
         playerManager.registerSourceManager(SoundCloudAudioSourceManager.createDefault());
         AudioSourceManagers.registerRemoteSources(playerManager,
                 com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager.class);
@@ -75,6 +83,43 @@ public class BotContext {
         int idx = 0;
         for (String p : parts) if (!p.isBlank()) result[idx++] = p.trim();
         return result;
+    }
+
+    /**
+     * Creates the YouTube source manager with a broad set of InnerTube clients and optional
+     * PO-token / OAuth2 authentication from the config file.
+     *
+     * <p>Multiple clients are registered so that if one client is blocked by YouTube
+     * (login required, no supported streams, player config errors), the next one is tried.</p>
+     */
+    private YoutubeAudioSourceManager createYoutubeSource(Properties cfg) {
+        Client[] clients = {
+                new Music(),
+                new Web(),
+                new MWeb(),
+                new WebEmbedded(),
+                new AndroidVr(),
+                new TvHtml5Simply()
+        };
+        YoutubeAudioSourceManager youtube = new YoutubeAudioSourceManager(true, clients);
+
+        String poToken = cfg.getProperty("youtube.po.token", "").trim();
+        String visitorData = cfg.getProperty("youtube.po.visitor.data", "").trim();
+        if (!poToken.isEmpty() && !visitorData.isEmpty()) {
+            Web.setPoTokenAndVisitorData(poToken, visitorData);
+            log.info("[YouTube] PO-Token + VisitorData konfiguriert (fixt 'no supported audio streams')");
+        }
+
+        String refreshToken = cfg.getProperty("youtube.oauth.refresh.token", "").trim();
+        boolean oauthEnabled = Boolean.parseBoolean(cfg.getProperty("youtube.oauth.enabled", "false"));
+        if (!refreshToken.isEmpty()) {
+            youtube.useOauth2(refreshToken, true);
+            log.info("[YouTube] OAuth2 mit Refresh-Token konfiguriert (fixt 'video requires login')");
+        } else if (oauthEnabled) {
+            youtube.useOauth2(null, false);
+            log.info("[YouTube] OAuth2 Flow aktiv - Code wird im Terminal angezeigt. Nach dem Login Refresh-Token in config.properties eintragen!");
+        }
+        return youtube;
     }
 
     /**

@@ -31,3 +31,24 @@ spotify.client.secret=
 # Beispiel: nonstop.genres=techno,hardstyle,rock,80er
 nonstop.genres=
 nonstop.modifiers=
+
+# =====================================================
+# YouTube (dev.lavalink.youtube) - BEHEBT LADEFEHLER
+# =====================================================
+
+# PO-Token + VisitorData (empfohlen bei: "No supported audio streams available")
+# Erhalte diese hier: https://github.com/youtube/yt-dlp#user-content-po-token-guide
+# Optional - leer lassen wenn nicht vorhanden.
+youtube.po.token=
+youtube.po.visitor.data=
+
+# OAuth2 - behebt "This video requires login" (Altersbeschraenkung, private Videos)
+#
+# Variante A (einfach): oauth.enabled=true setzen, Bot starten -> der Login-Link
+#   und ein Code erscheinen im Terminal. Link im Browser oeffnen, Google-Konto
+#   waehlen, Code eintragen. Danach steht der Refresh-Token in config.properties.
+# Variante B (direkt): Refresh-Token schon bekannt -> hier eintragen.
+# Optional - leer lassen wenn nicht vorhanden.
+youtube.oauth.enabled=false
+youtube.oauth.refresh.token=
+
