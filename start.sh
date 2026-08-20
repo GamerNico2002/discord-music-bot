@@ -3,7 +3,7 @@
 # Erwartet, dass die fertige JAR im selben Ordner liegt.
 cd "$(dirname "$0")"
 
-JAR=$(ls discord-music-bot-*-all.jar 2>/dev/null | head -n 1)
+JAR=$(ls -t discord-music-bot-*-all.jar 2>/dev/null | head -n 1)
 
 if [ -z "$JAR" ]; then
     echo "[FEHLER] Keine discord-music-bot-*-all.jar gefunden."

@@ -7,12 +7,9 @@ import com.sedmelluq.discord.lavaplayer.source.soundcloud.SoundCloudAudioSourceM
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import dev.lavalink.youtube.YoutubeAudioSourceManager;
 import dev.lavalink.youtube.YoutubeSourceOptions;
-import dev.lavalink.youtube.clients.AndroidMusic;
 import dev.lavalink.youtube.clients.AndroidVr;
-import dev.lavalink.youtube.clients.Ios;
 import dev.lavalink.youtube.clients.Music;
 import dev.lavalink.youtube.clients.MWeb;
-import dev.lavalink.youtube.clients.Tv;
 import dev.lavalink.youtube.clients.TvHtml5Simply;
 import dev.lavalink.youtube.clients.Web;
 import dev.lavalink.youtube.clients.WebEmbedded;
@@ -24,10 +21,6 @@ import net.dv8tion.jda.api.managers.AudioManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -93,52 +86,23 @@ public class BotContext {
         return result;
     }
 
-    private static final String TOKEN_FILE = "youtube_token.txt";
-
-    private String readTokenFromFile() {
-        try {
-            Path path = Paths.get(TOKEN_FILE);
-            if (Files.exists(path)) {
-                String token = Files.readString(path).trim();
-                if (!token.isEmpty()) return token;
-            }
-        } catch (IOException e) {
-            log.warn("[YouTube] Could not read token file: {}", e.getMessage());
-        }
-        return null;
-    }
-
-    private void saveTokenToFile(String token) {
-        try {
-            Files.writeString(Paths.get(TOKEN_FILE), token);
-            log.info("[YouTube] Refresh token saved to {}", TOKEN_FILE);
-        } catch (IOException e) {
-            log.warn("[YouTube] Could not save token to file: {}", e.getMessage());
-        }
-    }
-
     /**
-     * Creates the YouTube source manager with a remote cipher server, broad set of
-     * InnerTube clients, and optional PO-token / OAuth2 authentication.
+     * Creates the YouTube source manager with a broad set of InnerTube clients and optional
+     * PO-token / OAuth2 authentication from the config file.
      *
-     * <p>The remote cipher server (cipher.kikkia.dev) handles YouTube's JavaScript
-     * signature decryption externally — this fixes the "Must find sig function" error
-     * without any local software.</p>
+     * <p>Multiple clients are registered so that if one client is blocked by YouTube
+     * (login required, no supported streams, player config errors), the next one is tried.</p>
      */
     private YoutubeAudioSourceManager createYoutubeSource(Properties cfg) {
         YoutubeSourceOptions options = new YoutubeSourceOptions()
                 .setRemoteCipher("https://cipher.kikkia.dev/", "", "DiscordMusicBot");
-
         Client[] clients = {
                 new Music(),
                 new Web(),
                 new MWeb(),
                 new WebEmbedded(),
                 new AndroidVr(),
-                new AndroidMusic(),
-                new TvHtml5Simply(),
-                new Tv(),
-                new Ios()
+                new TvHtml5Simply()
         };
         YoutubeAudioSourceManager youtube = new YoutubeAudioSourceManager(options, clients);
 
@@ -146,46 +110,17 @@ public class BotContext {
         String visitorData = cfg.getProperty("youtube.po.visitor.data", "").trim();
         if (!poToken.isEmpty() && !visitorData.isEmpty()) {
             Web.setPoTokenAndVisitorData(poToken, visitorData);
-            log.info("[YouTube] PO-Token + VisitorData konfiguriert");
+            log.info("[YouTube] PO-Token + VisitorData konfiguriert (fixt 'no supported audio streams')");
         }
 
-        String oauth = cfg.getProperty("youtube.oauth.refresh.token", "").trim();
+        String refreshToken = cfg.getProperty("youtube.oauth.refresh.token", "").trim();
         boolean oauthEnabled = Boolean.parseBoolean(cfg.getProperty("youtube.oauth.enabled", "false"));
-
-        if (!oauth.isEmpty()) {
-            try {
-                youtube.useOauth2(oauth, true);
-                log.info("[YouTube] OAuth2 mit Refresh-Token konfiguriert");
-            } catch (Exception e) {
-                log.warn("[YouTube] OAuth with provided token failed: {}", e.getMessage());
-                log.warn("[YouTube] Continuing without OAuth — some videos may not work.");
-            }
-        } else {
-            String savedToken = readTokenFromFile();
-            if (savedToken != null) {
-                try {
-                    log.info("[YouTube] Loaded refresh token from {}", TOKEN_FILE);
-                    youtube.useOauth2(savedToken, true);
-                } catch (Exception e) {
-                    log.warn("[YouTube] OAuth with saved token failed: {}", e.getMessage());
-                    log.warn("[YouTube] Token may be invalid. Delete {} and restart to re-authenticate.", TOKEN_FILE);
-                    log.warn("[YouTube] Continuing without OAuth — some videos may not work.");
-                }
-            } else if (oauthEnabled) {
-                try {
-                    log.info("[YouTube] Starting interactive OAuth flow...");
-                    youtube.useOauth2(null, false);
-                    String newToken = youtube.getOauth2RefreshToken();
-                    if (newToken != null) {
-                        saveTokenToFile(newToken);
-                    } else {
-                        log.warn("[YouTube] OAuth flow completed but refresh token could not be retrieved.");
-                    }
-                } catch (Exception e) {
-                    log.warn("[YouTube] OAuth flow failed: {}", e.getMessage());
-                    log.warn("[YouTube] Continuing without OAuth — some videos may not work.");
-                }
-            }
+        if (!refreshToken.isEmpty()) {
+            youtube.useOauth2(refreshToken, true);
+            log.info("[YouTube] OAuth2 mit Refresh-Token konfiguriert (fixt 'video requires login')");
+        } else if (oauthEnabled) {
+            youtube.useOauth2(null, false);
+            log.info("[YouTube] OAuth2 Flow aktiv - Code wird im Terminal angezeigt. Nach dem Login Refresh-Token in config.properties eintragen!");
         }
         return youtube;
     }

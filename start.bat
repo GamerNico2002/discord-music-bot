@@ -4,9 +4,9 @@ REM Erwartet, dass die fertige JAR im selben Ordner liegt.
 
 cd /d "%~dp0"
 
-REM Erste passende JAR suchen
+REM Neueste passende JAR suchen
 set "JAR="
-for %%F in (discord-music-bot-*-all.jar) do (
+for /f "delims=" %%F in ('dir /b /a-d /o-d "discord-music-bot-*-all.jar" 2^>nul') do (
     if not defined JAR set "JAR=%%F"
 )
 
